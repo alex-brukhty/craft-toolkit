@@ -1,19 +1,17 @@
 <?php
 
-namespace AlexBrukhty\CraftToolkit\twigextensions;
+namespace modules\toolkit\twigextensions;
 
 use Craft;
-
 use craft\elements\Asset;
-use craft\helpers\Template;
+use craft\helpers\Html;
+use craft\helpers\UrlHelper;
+use modules\toolkit\src\twigextensions\ImagerException;
+use modules\toolkit\src\twigextensions\ImagerX;
+use modules\toolkit\src\twigextensions\Throwable;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
-use craft\helpers\App;
-use craft\elements\Entry;
-use craft\helpers\UrlHelper;
-use craft\helpers\ArrayHelper;
-use craft\helpers\Html;
 
 /**
  * @author    Alex

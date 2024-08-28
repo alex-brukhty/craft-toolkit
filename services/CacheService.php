@@ -1,6 +1,6 @@
 <?php
 
-namespace AlexBrukhty\CraftToolkit\services;
+namespace modules\toolkit\services;
 
 use Craft;
 use craft\base\Element;

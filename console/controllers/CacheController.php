@@ -1,8 +1,8 @@
 <?php
 
-namespace AlexBrukhty\CraftToolkit\console\controllers;
+namespace modules\toolkit\console\controllers;
 
-use AlexBrukhty\CraftToolkit\services\CacheService;
+use modules\toolkit\services\CacheService;
 use yii\console\Controller;
 use yii\console\ExitCode;
 

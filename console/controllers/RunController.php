@@ -1,6 +1,6 @@
 <?php
 
-namespace AlexBrukhty\CraftToolkit\console\controllers;
+namespace modules\toolkit\console\controllers;
 
 use Craft;
 use craft\elements\Entry;

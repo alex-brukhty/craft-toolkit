@@ -1,13 +1,12 @@
 <?php
-namespace AlexBrukhty\CraftToolkit;
+namespace modules\toolkit;
 
 use Craft;
+use yii\base\Module;
+use modules\toolkit\services\CacheService;
+use modules\toolkit\twigextensions\Extensions;
 
-use AlexBrukhty\CraftToolkit\services\CacheService;
-use AlexBrukhty\CraftToolkit\twigextensions\Extensions;
-use craft\base\Plugin;
-
-class CraftToolkit extends Plugin
+class CraftToolkit extends Module
 {
     /**
      * Initializes the module.
