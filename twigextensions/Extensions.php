@@ -241,7 +241,7 @@ class Extensions extends AbstractExtension
                     $lazy ? 'lazy' : null,
                     $grayscale ? 'grayscale' : null,
                 ],
-                'alt' => $asset->alt ?? ($asset->caption ?? $asset->title),
+                'alt' => $asset->alt ?? (strip_tags($asset->caption) ?? $asset->title),
                 'sizes' => !$isGif ? $sizes : null,
                 'srcset' => $srcset,
                 'src' => $src,

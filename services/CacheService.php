@@ -93,6 +93,15 @@ class CacheService
                     return;
                 }
 
+                if (
+                    $this->matchesUriPatterns(
+                        $uri,
+                        ['sitemap.xml']
+                    )
+                ) {
+                    return;
+                }
+
                 $this->saveCache($response->content, $uri);
             },
             append: false,
@@ -163,8 +172,12 @@ class CacheService
 
     private function cacheFilePath(string $uri): string
     {
+        $uriIsFile = str_contains($uri, '.');
         $siteHostPath = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
-        $fileUri = FileHelper::normalizePath($siteHostPath . '/' . $uri . '/index.html');
+        $fileUri = FileHelper::normalizePath(
+            $siteHostPath . '/' . ($uriIsFile ? $uri : '/index.html')
+        );
+
         $cacheFolderPath = FileHelper::normalizePath(App::parseEnv(self::CACHED_BASE_PATH));
         return $cacheFolderPath . "/" . $fileUri;
     }
@@ -172,7 +185,9 @@ class CacheService
     private function saveCache(string $content, string $uri): void
     {
         try {
-            $content .= '<!-- Cached on ' . date('c') . ' -->';
+            if (!in_array($uri, ['site.webmanifest', 'robots.txt'])) {
+                $content .= '<!-- Cached on ' . date('c') . ' -->';
+            }
             $path = $this->cacheFilePath($uri);
             FileHelper::writeToFile($path, $content);
         } catch (Exception|ErrorException|InvalidArgumentException $exception) {
