@@ -2,9 +2,9 @@
 namespace modules\toolkit;
 
 use Craft;
-use yii\base\Module;
-use modules\toolkit\services\CacheService;
 use modules\toolkit\twigextensions\Extensions;
+use modules\toolkit\services\CacheService;
+use yii\base\Module;
 
 class CraftToolkit extends Module
 {
