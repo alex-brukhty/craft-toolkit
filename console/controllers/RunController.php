@@ -55,21 +55,26 @@ class RunController extends Controller
      */
     public function actionTransformImages(): void
     {
-        $assets = Asset::find()->transformUrls(':empty:')->all();
+        $assets = Asset::find()->all();
         $counter = 0;
 
-        if (count($assets) > 0) {
+        $filtered = array_filter($assets, fn ($asset) => in_array(
+            strtolower($asset->extension),
+            ['svg', 'gif', 'webp', 'avif']
+        ));
+
+        if (count($filtered) > 0) {
             $this->stdout('Transforming assets' . PHP_EOL, BaseConsole::FG_YELLOW);
 
-            Console::startProgress(0, count($assets), '', 0.8);
+            Console::startProgress(0, count($filtered), '', 0.8);
 
-            foreach ($assets as $asset) {
+            foreach ($filtered as $asset) {
                 ImageTransformService::transformImage($asset->id);
                 $counter = $counter + 1;
-                Console::updateProgress($counter, count($assets));
+                Console::updateProgress($counter, count($filtered));
             }
 
-            if ($counter === count($assets)) {
+            if ($counter === count($filtered)) {
                 Console::endProgress();
             }
         } else {
