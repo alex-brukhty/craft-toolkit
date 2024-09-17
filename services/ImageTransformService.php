@@ -5,48 +5,77 @@ namespace modules\toolkit\services;
 use Craft;
 use craft\errors\InvalidFieldException;
 use craft\helpers\App;
-use craft\helpers\UrlHelper;
+use craft\helpers\ArrayHelper;
+use craft\helpers\Queue;
 use craft\models\ImageTransform as ImageTransformModel;
 use craft\helpers\FileHelper;
 use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
 use Imagick;
 use ImagickException;
+use modules\toolkit\jobs\RemoveTransformImageJob;
+use modules\toolkit\jobs\TransformImageJob;
 use yii\base\ErrorException;
+use yii\base\Event;
 use yii\base\Exception;
 use Throwable;
+use yii\log\Logger;
 use yii\web\BadRequestHttpException;
 
 class ImageTransformService
 {
-    private static string $cloudflare_zone = 'monotone.store';
-
     private static function _getUriFromUrl(string $url): string
     {
         $parts = parse_url($url);
         return $parts ? ltrim($parts['path'], "/") : $url;
     }
 
-    /**
-     * Example transform url
-     *
-     * https://monotone.store/cdn-cgi/image/width=1400,quality=80,format=webp/media/products/IMG_1727.jpeg
-     */
+    public static function isEnabled(): bool
+    {
+        return App::env('IMAGE_TRANSFORM_ENABLED') ?? false;
+    }
+
+    public static function registerEvents(): void
+    {
+        Event::on(
+            Asset::class,
+            Asset::EVENT_AFTER_SAVE,
+            function(Event $event) {
+                if (
+                    $event->sender->transformUrls
+                    || in_array(
+                        strtolower($event->sender->extension),
+                        ['svg', 'gif', 'webp', 'avif']
+                    )
+                ) {
+                    return;
+                }
+
+                Queue::push(new TransformImageJob(['assetId' => $event->sender->id]));
+            }
+        );
+
+        Event::on(
+            Asset::class,
+            Asset::EVENT_BEFORE_DELETE,
+            function(Event $event) {
+                if (App::devMode()) {
+                    return;
+                }
+                Queue::push(new RemoveTransformImageJob(['assetId' => $event->sender->id]));
+            }
+        );
+    }
+
     public static function getTransformedImage(ImageTransformModel $transform, Asset $asset): string
     {
 
-        if (App::devMode()) {
-            // this is for testing only
-            // comment skip in Module.php
-            $assetUrl = "/".str_replace(UrlHelper::hostInfo($asset->url), 'https://monotone.store', $asset->url);
-        } else {
-            $assetUrl = $asset->url;
-        }
+        $domain = App::devMode() ? App::env('DEV_SERVER_PUBLIC') : Craft::$app->getSites()->currentSite->url;
+        $assetUrl = $domain.$asset->url;
 
-        // //wsrv.nl/?url=wsrv.nl/lichtenstein.jpg&w=300
+        // example https://wsrv.nl/?url=wsrv.nl/lichtenstein.jpg&w=300&q=80&output=webp
 
-        $zone = self::$cloudflare_zone;
-        $url = "https://$zone/cdn-cgi/image/width=$transform->width,quality=$transform->quality,format=$transform->format$assetUrl";
+        $url = "https://wsrv.nl/?url=$assetUrl&w=$transform->width&q=$transform->quality,output=$transform->format";
         $save = self::getTransformUri($asset, $transform, true);
 
         try {
@@ -60,7 +89,7 @@ class ImageTransformService
 
             return new BadRequestHttpException("Failed to transform using: $url, and save to: $save");
         } catch (ImagickException|Exception $e) {
-            return new BadRequestHttpException("Failed to transform: $e");
+            return new BadRequestHttpException("Failed to transform: $url, $e");
         }
     }
 
@@ -82,13 +111,19 @@ class ImageTransformService
         }
 
         $transforms = Craft::$app->imageTransforms->getAllTransforms();
+        ArrayHelper::multisort($transforms, 'width');
 
-        $urls = array_map(function ($transform) use ($asset) {
-            return [
-                'uri' => "/".self::getTransformedImage($transform, $asset),
-                'width' => $transform->width
-            ];
-        }, $transforms);
+        try {
+            $urls = array_map(function ($transform) use ($asset) {
+                return [
+                    'uri' => "/".self::getTransformedImage($transform, $asset),
+                    'width' => $transform->width
+                ];
+            }, $transforms);
+        } catch (Throwable $e) {
+            Craft::$app->getLog()->logger->log($e->getMessage(), Logger::LEVEL_ERROR);
+            return;
+        }
 
         $asset->setFieldValue('transformUrls', json_encode($urls));
         Craft::$app->elements->saveElement($asset);
@@ -98,9 +133,11 @@ class ImageTransformService
      * @throws Throwable
      * @throws ErrorException
      */
-    public static function deleteImage(string $assetId): void
+    public static function deleteTransformedImage(string $assetId): void
     {
         $asset = Asset::find()->id($assetId)->one();
+        $asset->setFieldValue('transformUrls', '');
+        Craft::$app->elements->saveElement($asset);
         FileHelper::removeDirectory(self::getTransformFolder($asset, true));
     }
 
@@ -111,13 +148,13 @@ class ImageTransformService
         return ($asFile ? App::env('CRAFT_WEB_ROOT').'/' : '')."media_optimised$uriWithoutMedia";
     }
 
-    public static function getTransformFolderFull(Asset $asset, ImageTransformService $transform, $asFile = false): string
+    public static function getTransformFolderFull(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
         return self::getTransformFolder($asset, $asFile).'/'.$transform->width;
     }
 
     // get ulr of transformed image
-    public static function getTransformUri(Asset $asset, ImageTransformService $transform, $asFile = false): string
+    public static function getTransformUri(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
         $withoutExt = preg_replace('/\.\w+$/', '', $asset->filename);
         return self::getTransformFolderFull($asset, $transform, $asFile).'/'.$withoutExt.'.'.$transform->format;

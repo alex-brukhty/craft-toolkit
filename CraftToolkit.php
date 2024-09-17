@@ -4,6 +4,7 @@ namespace modules\toolkit;
 use Craft;
 use modules\toolkit\twigextensions\Extensions;
 use modules\toolkit\services\CacheService;
+use modules\toolkit\services\ImageTransformService;
 use yii\base\Module;
 
 class CraftToolkit extends Module
@@ -28,11 +29,11 @@ class CraftToolkit extends Module
         $ext = new Extensions();
         Craft::$app->view->registerTwigExtension($ext);
 
-        $cache = new CacheService();
-        $cache->registerEvents();
+        CacheService::registerEvents();
+        ImageTransformService::registerEvents();
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
-            $cache->registerClearCaches();
+            CacheService::registerClearCaches();
         }
     }
 }

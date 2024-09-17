@@ -35,11 +35,11 @@ class RemoveTransformImageJob extends BaseJob implements RetryableJobInterface
      */
     public function execute($queue): void
     {
-        ImageTransformService::deleteImage($this->assetId);
+        ImageTransformService::deleteTransformedImage($this->assetId);
     }
 
     public function getDescription(): string
     {
-        return 'Removing Image';
+        return 'Removing transformed image';
     }
 }

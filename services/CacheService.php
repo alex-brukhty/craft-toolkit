@@ -37,7 +37,7 @@ class CacheService
         $this->siteUrl = App::env('PRIMARY_SITE_URL');
     }
 
-    public function registerEvents(): void
+    public static function registerEvents(): void
     {
         Event::on(Response::class, ResponseAlias::EVENT_AFTER_PREPARE,
             function(Event $event) {
@@ -122,13 +122,13 @@ class CacheService
                     // $element = $event->element;
 
                     // TODO: this is temp
-                    $this->clearAllCache();
+                    CacheService::clearAllCache();
                 }
             );
         }
     }
 
-    public function registerClearCaches(): void
+    public static function registerClearCaches(): void
     {
         Event::on(ClearCaches::class, ClearCaches::EVENT_REGISTER_CACHE_OPTIONS,
             function(RegisterCacheOptionsEvent $event) {
@@ -195,7 +195,7 @@ class CacheService
         }
     }
 
-    public function clearAllCache(): void
+    public static function clearAllCache(): void
     {
         try {
             $cacheFolderPath = FileHelper::normalizePath(App::parseEnv(self::CACHED_BASE_PATH));

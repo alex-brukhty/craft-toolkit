@@ -6,6 +6,8 @@ use Craft;
 use craft\elements\Asset;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
+use craft\models\ImageTransform;
+use modules\toolkit\services\ImageTransformService;
 use Throwable;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -129,6 +131,31 @@ class Extensions extends AbstractExtension
         return implode(', ', $fixedParts);
     }
 
+    private function _parseSized(string $sizes): string
+    {
+        // sm:2,md:4,lg:3,4
+        $breaks = [
+            'sm' => '(max-width: 767px) ',
+            'md' => '(max-width: 1023px) ',
+            'lg' => '(max-width: 1366px) ',
+            'xl' => '(max-width: 1719px) ',
+        ];
+
+        $sizeParts = explode(',', $sizes);
+        $parsedParts = [];
+        foreach ($sizeParts as $part) {
+            $innerParts = explode(':', $part);
+            if (count($innerParts) == 2) {
+                $col = floor(100 / $innerParts[1]) . "vw";
+                $parsedParts[] = $breaks[$innerParts[0]] . $col;
+            } else {
+                $parsedParts[] = floor(100 / $innerParts[0]) . "vw";
+            }
+        }
+
+        return implode(', ', $parsedParts);
+    }
+
     /**
      * @throws ImagerException
      */
@@ -156,7 +183,7 @@ class Extensions extends AbstractExtension
     /**
      * @throws Throwable
      */
-    public function mediaBase(Asset|null $asset, $transformName = 'fullWidth', $options = []): string
+    public function mediaBase(Asset|null $asset, $options = [], $transformName = 'fullWidth'): string
     {
         if (!$asset) return '';
 
@@ -166,11 +193,13 @@ class Extensions extends AbstractExtension
         $autoplay = $options['autoplay'] ?? true;
         $class = $options['class'] ?? '';
         $grayscale = $options['grayscale'] ?? false;
-        $sizes = $options['sizes'] ?? '100vw';
+        $sizes = $options['sizes'] ?? '';
         $isGif = $asset->extension == 'gif';
         $isPng = $asset->extension == 'png';
         $inset = $options['inset'] ?? false;
         $mobileMedia = $options['hasMobile'] ?? false;
+
+        $parsedSizes = $sizes ? $this->_parseSized($sizes) : '';
 
         $ratioSvg = Html::tag('svg', null, [
             'class' => 'image-ratio',
@@ -225,7 +254,10 @@ class Extensions extends AbstractExtension
             if ($imagerX && $imagerX->isInstalled) {
                 $transforms = $imagerX->imager->transformImage($asset, $transformName) ?? [];
                 $srcset = $this->fixSrcsetSpaces($imagerX->imager->srcset($transforms)) ?? null;
-                $src = str_replace(' ' , '%20',end($transforms)->url ?? $asset->url);
+                $src = str_replace(' ', '%20', end($transforms)->url ?? $asset->url);
+            } elseif (ImageTransformService::isEnabled()) {
+                $src = ImageTransformService::getSrc($asset);
+                $srcset = ImageTransformService::getSrcset($asset);
             } else {
                 $srcset = $asset->getSrcset([800, 1300, 1920], ['format' => 'webp']);
                 $src = $asset->url;
@@ -239,8 +271,8 @@ class Extensions extends AbstractExtension
                     $lazy ? 'lazy' : null,
                     $grayscale ? 'grayscale' : null,
                 ],
-                'alt' => $asset->alt ?? (strip_tags($asset->caption) ?? $asset->title),
-                'sizes' => !$isGif ? $sizes : null,
+                'alt' => $asset->alt ?? (strip_tags($asset->caption ?? '') ?? $asset->title),
+                'sizes' => !$isGif ? $parsedSizes : null,
                 'srcset' => $srcset,
                 'src' => $src,
                 'loading' => $lazy ? 'lazy' : null,
