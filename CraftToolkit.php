@@ -29,11 +29,12 @@ class CraftToolkit extends Module
         $ext = new Extensions();
         Craft::$app->view->registerTwigExtension($ext);
 
-        CacheService::registerEvents();
+        $cacheService = new CacheService();
+        $cacheService->registerEvents();
         ImageTransformService::registerEvents();
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
-            CacheService::registerClearCaches();
+            $cacheService->registerClearCaches();
         }
     }
 }

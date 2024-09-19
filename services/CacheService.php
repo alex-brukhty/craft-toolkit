@@ -37,98 +37,100 @@ class CacheService
         $this->siteUrl = App::env('PRIMARY_SITE_URL');
     }
 
-    public static function registerEvents(): void
+    public function registerEvents(): void
     {
-        Event::on(Response::class, ResponseAlias::EVENT_AFTER_PREPARE,
-            function(Event $event) {
-                /** @var Response $response */
-                $request = Craft::$app->getRequest();
-                $response = $event->sender;
-                $uri = $request->getFullUri();
+        if ($this->enabled) {
+            Event::on(Response::class, ResponseAlias::EVENT_AFTER_PREPARE,
+                function(Event $event) {
+                    /** @var Response $response */
+                    $request = Craft::$app->getRequest();
+                    $response = $event->sender;
+                    $uri = $request->getFullUri();
 
-                if (!$request->getIsSiteRequest()
-                    || $request->getQueryString()
-                    || !$request->getIsGet()
-                    || $request->getIsConsoleRequest()
-                    || $request->getIsActionRequest()
-                    || $request->getIsPreview()
-                ) {
-                    return;
-                }
+                    if (!$request->getIsSiteRequest()
+                        || $request->getQueryString()
+                        || !$request->getIsGet()
+                        || $request->getIsConsoleRequest()
+                        || $request->getIsActionRequest()
+                        || $request->getIsPreview()
+                    ) {
+                        return;
+                    }
 
-                if ($response === null || $response->content === null) {
-                    return;
-                }
+                    if ($response === null || $response->content === null) {
+                        return;
+                    }
 
-                if ($response->getIsOk() === false) {
-                    return;
-                }
+                    if ($response->getIsOk() === false) {
+                        return;
+                    }
 
-                if ($response->format !== ResponseAlias::FORMAT_HTML
-                    && $response->format !== 'template') {
-                    return;
-                }
+                    if ($response->format !== ResponseAlias::FORMAT_HTML
+                        && $response->format !== 'template') {
+                        return;
+                    }
 
-                if (!$this->enabled) {
-                    return;
-                }
+                    if (!$this->enabled) {
+                        return;
+                    }
 
-                if (
-                    $this->excludePattern
-                    && $this->matchesUriPatterns(
-                        $uri,
-                        explode(',', $this->excludePattern)
-                    )
-                ) {
-                    return;
-                }
+                    if (
+                        $this->excludePattern
+                        && $this->matchesUriPatterns(
+                            $uri,
+                            explode(',', $this->excludePattern)
+                        )
+                    ) {
+                        return;
+                    }
 
-                if (
-                    $this->includePattern
-                    && !$this->matchesUriPatterns(
-                        $uri,
-                        explode(',', $this->includePattern)
-                    )
-                ) {
-                    return;
-                }
+                    if (
+                        $this->includePattern
+                        && !$this->matchesUriPatterns(
+                            $uri,
+                            explode(',', $this->includePattern)
+                        )
+                    ) {
+                        return;
+                    }
 
-                if (
-                    $this->matchesUriPatterns(
-                        $uri,
-                        ['sitemap.xml']
-                    )
-                ) {
-                    return;
-                }
+                    if (
+                        $this->matchesUriPatterns(
+                            $uri,
+                            ['sitemap.xml']
+                        )
+                    ) {
+                        return;
+                    }
 
-                $this->saveCache($response->content, $uri);
-            },
-            append: false,
-        );
-
-        $events = [
-            Elements::EVENT_BEFORE_SAVE_ELEMENT,
-            Elements::EVENT_BEFORE_RESAVE_ELEMENT,
-            Elements::EVENT_BEFORE_UPDATE_SLUG_AND_URI,
-            Elements::EVENT_BEFORE_DELETE_ELEMENT,
-            Elements::EVENT_BEFORE_RESTORE_ELEMENT,
-        ];
-
-        foreach ($events as $event) {
-            Event::on(Elements::class, $event,
-                function(ElementEvent|MultiElementActionEvent $event) {
-                    /** @var Element $element */
-                    // $element = $event->element;
-
-                    // TODO: this is temp
-                    CacheService::clearAllCache();
-                }
+                    $this->saveCache($response->content, $uri);
+                },
+                append: false,
             );
+
+            $events = [
+                Elements::EVENT_BEFORE_SAVE_ELEMENT,
+                Elements::EVENT_BEFORE_RESAVE_ELEMENT,
+                Elements::EVENT_BEFORE_UPDATE_SLUG_AND_URI,
+                Elements::EVENT_BEFORE_DELETE_ELEMENT,
+                Elements::EVENT_BEFORE_RESTORE_ELEMENT,
+            ];
+
+            foreach ($events as $event) {
+                Event::on(Elements::class, $event,
+                    function(ElementEvent|MultiElementActionEvent $event) {
+                        /** @var Element $element */
+                        // $element = $event->element;
+
+                        // TODO: this is temp
+                        $this->clearAllCache();
+                    }
+                );
+            }
         }
     }
 
-    public static function registerClearCaches(): void
+    public function registerClearCaches(): void
     {
         Event::on(ClearCaches::class, ClearCaches::EVENT_REGISTER_CACHE_OPTIONS,
             function(RegisterCacheOptionsEvent $event) {
@@ -195,7 +197,7 @@ class CacheService
         }
     }
 
-    public static function clearAllCache(): void
+    public function clearAllCache(): void
     {
         try {
             $cacheFolderPath = FileHelper::normalizePath(App::parseEnv(self::CACHED_BASE_PATH));
