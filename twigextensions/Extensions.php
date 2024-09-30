@@ -56,6 +56,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('getIconName', [$this, 'getIconName']),
             new TwigFunction('fixSrcsetSpaces', [$this, 'fixSrcsetSpaces']),
             new TwigFunction('getSrcsetSizes', [$this, 'getSrcsetSizes']),
+            new TwigFunction('isExternalUrl', [$this, 'isExternalUrl']),
             new TwigFunction('class', [$this, 'classHelper'], ['is_safe' => ['html']]),
             new TwigFunction('style', [$this, 'styleHelper'], ['is_safe' => ['html']]),
             new TwigFunction('mediaBase', [$this, 'mediaBase'], ['is_safe' => ['html']]),
@@ -331,5 +332,10 @@ class Extensions extends AbstractExtension
         $secondHalf = implode(' ', array_slice($parts, $half));
         return $firstHalf . '
         ' . $secondHalf;
+    }
+
+    public function isExternalUrl($url)
+    {
+        return str_contains($url, '//') && !str_contains($url, UrlHelper::siteHost());
     }
 }
