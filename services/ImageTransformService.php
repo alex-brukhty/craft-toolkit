@@ -179,7 +179,7 @@ class ImageTransformService
     /**
      * @throws InvalidFieldException
      */
-    public static function getSrc(Asset $asset): string
+    public static function getSrc(Asset $asset, bool $last = false): string
     {
         $transformsString = $asset->getFieldValue('transformUrls');
         if (!$transformsString) {
@@ -188,7 +188,7 @@ class ImageTransformService
 
         $transforms = json_decode($transformsString);
 
-        return $transforms[0]->uri;
+        return $last ? $transforms[array_key_last($transforms)]->uri : $transforms[0]->uri;
     }
 
     public static function placeholderSVG(): ?string

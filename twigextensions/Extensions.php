@@ -4,6 +4,7 @@ namespace modules\toolkit\twigextensions;
 
 use Craft;
 use craft\elements\Asset;
+use craft\errors\InvalidFieldException;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use craft\models\ImageTransform;
@@ -12,6 +13,7 @@ use Throwable;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
+use function Symfony\Component\Translation\t;
 
 /**
  * @author    Alex
@@ -55,7 +57,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('urlHelper', [$this, 'urlHelper']),
             new TwigFunction('getIconName', [$this, 'getIconName']),
             new TwigFunction('fixSrcsetSpaces', [$this, 'fixSrcsetSpaces']),
-            new TwigFunction('getSrcsetSizes', [$this, 'getSrcsetSizes']),
+            new TwigFunction('getSrc', [$this, 'getSrc']),
             new TwigFunction('isExternalUrl', [$this, 'isExternalUrl']),
             new TwigFunction('class', [$this, 'classHelper'], ['is_safe' => ['html']]),
             new TwigFunction('style', [$this, 'styleHelper'], ['is_safe' => ['html']]),
@@ -158,27 +160,11 @@ class Extensions extends AbstractExtension
     }
 
     /**
-     * @throws ImagerException
+     * @throws InvalidFieldException
      */
-    public function getSrcsetSizes(Asset|null $asset, string $transformName)
+    public function getSrc(Asset|null $asset, bool $last = false)
     {
-
-        if (!$asset || $asset->extension === 'gif') {
-            return [
-                'srcset' => null,
-                'src' => $asset?->url
-            ];
-        }
-
-        $imagerX = Craft::$app->plugins->getPlugin('imager-x');
-        if ($imagerX instanceof ImagerX) {
-            $transforms = $imagerX->imager->transformImage($asset, $transformName);
-
-            return [
-                'srcset' => $this->fixSrcsetSpaces($imagerX->imager->srcset($transforms)) ?? null,
-                'src' => str_replace(' ' , '%20',end($transforms)->url ?? $asset->url)
-            ];
-        }
+        return $asset ? ImageTransformService::getSrc($asset, $last) : '';
     }
 
     /**
