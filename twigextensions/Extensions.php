@@ -229,7 +229,13 @@ class Extensions extends AbstractExtension
         }
 
         if ($asset->extension === 'svg') {
-            return Html::svg($asset);
+            return Html::tag(
+                'div',
+                Html::svg($asset),
+                [
+                    'class' => $class
+                ]
+            );
         }
 
         if ($isGif) {
