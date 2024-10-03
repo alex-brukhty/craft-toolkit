@@ -63,6 +63,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('style', [$this, 'styleHelper'], ['is_safe' => ['html']]),
             new TwigFunction('mediaBase', [$this, 'mediaBase'], ['is_safe' => ['html']]),
             new TwigFunction('media', [$this, 'media'], ['is_safe' => ['html']]),
+            new TwigFunction('imageMarkup', [$this, 'imageMarkup'], ['is_safe' => ['html']]),
             new TwigFunction('player', [$this, 'player'], ['is_safe' => ['html']]),
         ];
     }
@@ -167,6 +168,54 @@ class Extensions extends AbstractExtension
         return $asset ? ImageTransformService::getSrc($asset, $last) : '';
     }
 
+    public function imageMarkup(string $src, array $options): string
+    {
+        $srcset    = $options['srcset'] ?? null;
+        $class     = $options['class'] ?? null;
+        $width     = $options['width'] ?? null;
+        $height    = $options['height'] ?? null;
+        $lazy      = $options['lazy'] ?? true;
+        $sizes     = $options['sizes'] ?? '';
+        $isGif     = $options['isGif'] ?? false;
+        $isPng     = $options['isPng'] ?? false;
+        $inset     = $options['inset'] ?? false;
+        $grayscale = $options['grayscale'] ?? false;
+        $hasMobile = $options['hasMobile'] ?? false;
+
+        $parsedSizes = $sizes ? $this->_parseSized($sizes) : '';
+        $ratioSvg = Html::tag('svg', null, [
+            'class' => 'image-ratio',
+            'viewBox' => "0 0 $width $height",
+            'xmlns' => 'http://www.w3.org/2000/svg',
+        ]);
+
+        return Html::tag(
+            'div',
+            Html::tag('img', null, [
+                'class' => [
+                    $lazy ? 'lazy' : null,
+                    $grayscale ? 'grayscale' : null,
+                ],
+                'alt' => $alt ?? null,
+                'sizes' => !$isGif ? $parsedSizes : null,
+                'srcset' => $srcset,
+                'src' => $src,
+                'loading' => $lazy ? 'lazy' : null,
+                'onload' => $lazy ? 'this.classList.add("loaded")' : null
+            ]).$ratioSvg,
+            [
+                'class' => [
+                    'image-wrap',
+                    $hasMobile ? 'to-md:hidden' : null,
+                    $lazy ? 'lazy-wrap' : null,
+                    $isPng ? 'is-transparent' : null,
+                    $inset ? 'inset-image' : null,
+                    $class,
+                ]
+            ]
+        );
+    }
+
     /**
      * @throws Throwable
      */
@@ -185,8 +234,6 @@ class Extensions extends AbstractExtension
         $isPng = $asset->extension == 'png';
         $inset = $options['inset'] ?? false;
         $mobileMedia = $options['hasMobile'] ?? false;
-
-        $parsedSizes = $sizes ? $this->_parseSized($sizes) : '';
 
         $ratioSvg = Html::tag('svg', null, [
             'class' => 'image-ratio',
@@ -257,31 +304,20 @@ class Extensions extends AbstractExtension
             }
         }
 
-        return Html::tag(
-            'div',
-            Html::tag('img', null, [
-                'class' => [
-                    $lazy ? 'lazy' : null,
-                    $grayscale ? 'grayscale' : null,
-                ],
-                'alt' => $asset->alt ?? (strip_tags($asset->caption ?? '') ?? $asset->title),
-                'sizes' => !$isGif ? $parsedSizes : null,
-                'srcset' => $srcset,
-                'src' => $src,
-                'loading' => $lazy ? 'lazy' : null,
-                'onload' => $lazy ? 'this.classList.add("loaded")' : null
-            ]).$ratioSvg,
-            [
-                'class' => [
-                    'image-wrap',
-                    $mobileMedia ? 'to-md:hidden' : null,
-                    $lazy ? 'lazy-wrap' : null,
-                    $isPng ? 'is-transparent' : null,
-                    $inset ? 'inset-image' : null,
-                    $class,
-                ]
-            ]
-        );
+        return $this->imageMarkup($src, [
+            'srcset' => $srcset,
+            'class' => $class,
+            'alt' => $alt ?? (strip_tags($asset->caption ?? '') ?? $asset->title),
+            'width' => $width,
+            'height' => $height,
+            'lazy' => $lazy,
+            'sizes' => $sizes,
+            'isGif' => $isGif,
+            'isPng' => $isPng,
+            'inset' => $inset,
+            'grayscale' => $grayscale,
+            'hasMobile' => $mobileMedia,
+        ]);
     }
 
     /**
