@@ -183,11 +183,11 @@ class Extensions extends AbstractExtension
         $hasMobile = $options['hasMobile'] ?? false;
 
         $parsedSizes = $sizes ? $this->_parseSized($sizes) : '';
-        $ratioSvg = Html::tag('svg', null, [
+        $ratioSvg = $width && $height ? Html::tag('svg', null, [
             'class' => 'image-ratio',
             'viewBox' => "0 0 $width $height",
             'xmlns' => 'http://www.w3.org/2000/svg',
-        ]);
+        ]) : '';
 
         return Html::tag(
             'div',
