@@ -14,7 +14,8 @@ class CacheController extends Controller
 
     public function actionIndex(): int
     {
-        CacheService::clearAllCache();
+        $cacheService = new CacheService();
+        $cacheService->clearAllCache();
 
         return ExitCode::OK;
     }
