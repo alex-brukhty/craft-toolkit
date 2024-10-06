@@ -177,7 +177,7 @@ class CacheService
         $uriIsFile = str_contains($uri, '.');
         $siteHostPath = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
         $fileUri = FileHelper::normalizePath(
-            $siteHostPath . '/' . ($uriIsFile ? $uri : '/index.html')
+            $siteHostPath . '/' . ($uriIsFile ? $uri : $uri.'/index.html')
         );
 
         $cacheFolderPath = FileHelper::normalizePath(App::parseEnv(self::CACHED_BASE_PATH));
