@@ -7,13 +7,11 @@ use craft\elements\Asset;
 use craft\errors\InvalidFieldException;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
-use craft\models\ImageTransform;
 use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use Throwable;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
-use function Symfony\Component\Translation\t;
 
 /**
  * @author    Alex
