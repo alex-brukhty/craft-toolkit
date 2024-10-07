@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\toolkit\console\controllers;
+namespace alexbrukhty\crafttoolkit\console\controllers;
 
 use Craft;
 use craft\elements\Asset;
@@ -8,7 +8,7 @@ use craft\elements\Entry;
 use craft\errors\ElementNotFoundException;
 use craft\helpers\Console;
 use GuzzleHttp\Exception\GuzzleException;
-use modules\toolkit\services\ImageTransformService;
+use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use Throwable;
 use yii\base\ErrorException;
 use yii\base\Exception;
@@ -99,7 +99,7 @@ class RunController extends Controller
             Console::startProgress(0, count($assets), '', 0.8);
 
             foreach ($assets as $asset) {
-                ImageTransformService::deleteTransformedImage($asset->id);
+                ImageTransformService::deleteTransformedImage($asset);
                 $counter = $counter + 1;
                 Console::updateProgress($counter, count($assets));
             }

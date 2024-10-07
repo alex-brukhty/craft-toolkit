@@ -1,38 +1,49 @@
 <?php
 
-namespace modules\toolkit\services;
+namespace alexbrukhty\crafttoolkit\services;
 
 use Craft;
+use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\InvalidFieldException;
 use craft\helpers\App;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Queue;
+use craft\helpers\UrlHelper;
 use craft\models\ImageTransform as ImageTransformModel;
 use craft\helpers\FileHelper;
 use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
 use Imagick;
 use ImagickException;
-use modules\toolkit\jobs\RemoveTransformImageJob;
-use modules\toolkit\jobs\TransformImageJob;
+use alexbrukhty\crafttoolkit\jobs\RemoveTransformImageJob;
+use alexbrukhty\crafttoolkit\jobs\TransformImageJob;
 use yii\base\ErrorException;
 use yii\base\Event;
 use yii\base\Exception;
 use Throwable;
+use yii\base\InvalidConfigException;
 use yii\log\Logger;
 use yii\web\BadRequestHttpException;
 
 class ImageTransformService
 {
-    private static function _getUriFromUrl(string $url): string
-    {
-        $parts = parse_url($url);
-        return $parts ? ltrim($parts['path'], "/") : $url;
-    }
+    public const string TRANSFORMED_IMAGES_PATH = '@webroot/media_optimised';
 
     public static function isEnabled(): bool
     {
-        return App::env('IMAGE_TRANSFORM_ENABLED') ?? false;
+        return Toolkit::getInstance()->getSettings()->imageTransformEnabled ?? false;
+    }
+
+    public static function getApiUrl(): string
+    {
+        return Toolkit::getInstance()->getSettings()->imageTransformApiUrl;
+    }
+
+    public static function getWebsiteDomain(): string
+    {
+        return App::devMode()
+            ? Toolkit::getInstance()->getSettings()->imageTransformPublicUrl
+            : Craft::$app->getSites()->currentSite->baseUrl;
     }
 
     public static function registerEvents(): void
@@ -59,23 +70,36 @@ class ImageTransformService
             Asset::class,
             Asset::EVENT_BEFORE_DELETE,
             function(Event $event) {
-                if (App::devMode()) {
-                    return;
-                }
-                Queue::push(new RemoveTransformImageJob(['assetId' => $event->sender->id]));
+                /** @var Asset $asset */
+                $asset = $event->sender;
+                ImageTransformService::deleteTransformedImage($asset);
             }
         );
     }
 
+
+    /**
+     * @param ImageTransformModel $transform
+     * @param Asset $asset
+     * @return string
+     *
+     * Main method for transforming images using the external API like `wsrv.nl`
+     * Example transformation: https://wsrv.nl/?url=wsrv.nl/lichtenstein.jpg&w=300&q=80&output=webp
+     * @throws InvalidConfigException
+     */
     public static function getTransformedImage(ImageTransformModel $transform, Asset $asset): string
     {
 
-        $domain = App::devMode() ? App::env('DEV_SERVER_PUBLIC') : Craft::$app->getSites()->currentSite->url;
+        $domain = self::getWebsiteDomain();
         $assetUrl = $domain.$asset->url;
 
-        // example https://wsrv.nl/?url=wsrv.nl/lichtenstein.jpg&w=300&q=80&output=webp
+        $url = UrlHelper::url(self::getApiUrl(), [
+            'url' => $assetUrl,
+            'w' => $transform->width,
+            'q' => $transform->quality,
+            'output' => $transform->format,
+        ]);
 
-        $url = "https://wsrv.nl/?url=$assetUrl&w=$transform->width&q=$transform->quality,output=$transform->format";
         $save = self::getTransformUri($asset, $transform, true);
 
         try {
@@ -133,27 +157,42 @@ class ImageTransformService
      * @throws Throwable
      * @throws ErrorException
      */
-    public static function deleteTransformedImage(string $assetId): void
+    public static function deleteTransformedImage(Asset $asset): void
     {
-        $asset = Asset::find()->id($assetId)->one();
-        $asset->setFieldValue('transformUrls', '');
-        Craft::$app->elements->saveElement($asset);
         FileHelper::removeDirectory(self::getTransformFolder($asset, true));
     }
 
-    public static function getTransformFolder($asset, $asFile = false): string
+    /**
+     * @throws InvalidConfigException
+     */
+    public static function getTransformFolder(Asset $asset, $asFile = false): string
     {
-        $uri = self::_getUriFromUrl($asset->url);
+        $baseUrl = $asset->getVolume()->getFs()->getRootUrl();
+        $uri = ltrim($asset->url, $baseUrl);
         $uriWithoutMedia = ltrim($uri, 'media');
-        return ($asFile ? App::env('CRAFT_WEB_ROOT').'/' : '')."media_optimised$uriWithoutMedia";
+
+        if ($asFile) {
+            $root = App::parseEnv(self::TRANSFORMED_IMAGES_PATH);
+            return FileHelper::normalizePath($root . DIRECTORY_SEPARATOR . $uriWithoutMedia);
+        } else {
+            $baseFolder = ltrim(self::TRANSFORMED_IMAGES_PATH, '@webroot/');
+            return FileHelper::normalizePath($baseFolder . DIRECTORY_SEPARATOR . $uriWithoutMedia);
+        }
     }
 
+    /**
+     * @throws InvalidConfigException
+     */
     public static function getTransformFolderFull(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
-        return self::getTransformFolder($asset, $asFile).'/'.$transform->width;
+        return FileHelper::normalizePath(self::getTransformFolder($asset, $asFile).'/'.$transform->width);
     }
 
     // get ulr of transformed image
+
+    /**
+     * @throws InvalidConfigException
+     */
     public static function getTransformUri(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
         $withoutExt = preg_replace('/\.\w+$/', '', $asset->filename);

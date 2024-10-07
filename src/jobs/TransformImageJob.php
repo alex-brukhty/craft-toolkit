@@ -1,10 +1,10 @@
 <?php
 
-namespace modules\toolkit\jobs;
+namespace alexbrukhty\crafttoolkit\jobs;
 
-use craft\errors\ElementNotFoundException;
 use craft\queue\BaseJob;
-use modules\toolkit\services\ImageTransformService;
+use GuzzleHttp\Exception\GuzzleException;
+use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use Throwable;
 use yii\base\ErrorException;
 use yii\base\Exception;
@@ -14,9 +14,11 @@ use yii\queue\RetryableJobInterface;
  *
  * @property-read int $ttr
  */
-class RemoveTransformImageJob extends BaseJob implements RetryableJobInterface
+class TransformImageJob extends BaseJob implements RetryableJobInterface
 {
+
     public string $assetId;
+
     public function getTtr(): int
     {
         return 300;
@@ -29,17 +31,17 @@ class RemoveTransformImageJob extends BaseJob implements RetryableJobInterface
 
     /**
      * @throws Throwable
-     * @throws ElementNotFoundException
-     * @throws Exception
+     * @throws GuzzleException
      * @throws ErrorException
+     * @throws Exception
      */
     public function execute($queue): void
     {
-        ImageTransformService::deleteTransformedImage($this->assetId);
+        ImageTransformService::transformImage($this->assetId);
     }
 
     public function getDescription(): string
     {
-        return 'Removing transformed image';
+        return 'Transforming Image';
     }
 }

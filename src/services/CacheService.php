@@ -1,7 +1,8 @@
 <?php
 
-namespace modules\toolkit\services;
+namespace alexbrukhty\crafttoolkit\services;
 
+use alexbrukhty\crafttoolkit\Toolkit;
 use Craft;
 use craft\base\Element;
 use craft\events\ElementEvent;
@@ -20,21 +21,21 @@ use yii\web\Response as ResponseAlias;
 
 class CacheService
 {
-    public const CACHED_BASE_PATH = '@webroot/static';
     private int $countCachedFiles = 0;
     private bool $enabled;
-    private string $includePattern;
-    private string $excludePattern;
+    private array $includePattern;
+    private array $excludePattern;
     private string $siteUrl;
+    public string $cacheBasePath;
 
-    /**
-     * @throws Exception
-     */
     public function __construct() {
-        $this->enabled = App::env('CACHE_ENABLED') ?? false;
-        $this->includePattern = App::env('CACHE_INCLUDE') ?? '';
-        $this->excludePattern = App::env('CACHE_EXCLUDE') ?? '';
-        $this->siteUrl = App::env('PRIMARY_SITE_URL');
+        $this->enabled = Toolkit::getInstance()->getSettings()->cacheEnabled ?? false;
+        $this->includePattern = Toolkit::getInstance()->getSettings()->cacheInclude ?? [];
+        $this->excludePattern = Toolkit::getInstance()->getSettings()->cacheExclude ?? [];
+        $this->siteUrl = Craft::$app->getSites()->currentSite->baseUrl;
+
+        $cacheBasePath = Toolkit::getInstance()->getSettings()->cacheBasePath ?? '@webroot/static';
+        $this->cacheBasePath = FileHelper::normalizePath(App::parseEnv($cacheBasePath));
     }
 
     public function registerEvents(): void
@@ -78,7 +79,7 @@ class CacheService
                         $this->excludePattern
                         && $this->matchesUriPatterns(
                             $uri,
-                            explode(',', $this->excludePattern)
+                            $this->excludePattern
                         )
                     ) {
                         return;
@@ -88,7 +89,7 @@ class CacheService
                         $this->includePattern
                         && !$this->matchesUriPatterns(
                             $uri,
-                            explode(',', $this->includePattern)
+                            $this->includePattern
                         )
                     ) {
                         return;
@@ -135,7 +136,7 @@ class CacheService
         Event::on(ClearCaches::class, ClearCaches::EVENT_REGISTER_CACHE_OPTIONS,
             function(RegisterCacheOptionsEvent $event) {
                 $event->options[] = [
-                    'key' => 'module',
+                    'key' => '_toolkit',
                     'label' => 'Static HTML Cache',
                     'action' => [$this, 'clearAllCache'],
                 ];
@@ -176,12 +177,8 @@ class CacheService
     {
         $uriIsFile = str_contains($uri, '.');
         $siteHostPath = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
-        $fileUri = FileHelper::normalizePath(
-            $siteHostPath . '/' . ($uriIsFile ? $uri : $uri.'/index.html')
-        );
 
-        $cacheFolderPath = FileHelper::normalizePath(App::parseEnv(self::CACHED_BASE_PATH));
-        return $cacheFolderPath . "/" . $fileUri;
+        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $siteHostPath . DIRECTORY_SEPARATOR . ($uriIsFile ? $uri : $uri.'/index.html'));
     }
 
     private function saveCache(string $content, string $uri): void
@@ -200,8 +197,7 @@ class CacheService
     public function clearAllCache(): void
     {
         try {
-            $cacheFolderPath = FileHelper::normalizePath(App::parseEnv(self::CACHED_BASE_PATH));
-            FileHelper::removeDirectory($cacheFolderPath);
+            FileHelper::removeDirectory($this->cacheBasePath);
         } catch (ErrorException $exception) {
             Craft::$app->log->logger->log($exception->getMessage(), 'warning', 'static-cache');
         }

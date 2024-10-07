@@ -1,6 +1,6 @@
 <?php
 
-namespace modules\toolkit\twigextensions;
+namespace alexbrukhty\crafttoolkit\twigextensions;
 
 use Craft;
 use craft\elements\Asset;
@@ -8,7 +8,7 @@ use craft\errors\InvalidFieldException;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use craft\models\ImageTransform;
-use modules\toolkit\services\ImageTransformService;
+use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use Throwable;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
