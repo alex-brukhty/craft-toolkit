@@ -162,11 +162,14 @@ class ImageTransformService
         FileHelper::removeDirectory(self::getTransformFolder($asset, true));
     }
 
+    /**
+     * @throws InvalidConfigException
+     */
     public static function getTransformFolder(Asset $asset, $asFile = false): string
     {
         $uri = UrlHelper::rootRelativeUrl($asset->url);
-
-        $uriWithoutMedia = ltrim($uri, 'media');
+        $rootUrl = $asset->getVolume()->getFs()->getRootUrl();
+        $uriWithoutMedia = ltrim($uri, $rootUrl);
 
         if ($asFile) {
             $root = App::parseEnv(self::TRANSFORMED_IMAGES_PATH);
