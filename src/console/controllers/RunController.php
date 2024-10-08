@@ -58,7 +58,7 @@ class RunController extends Controller
         $assets = Asset::find()->all();
         $counter = 0;
 
-        $filtered = array_filter($assets, fn ($asset) => in_array(
+        $filtered = array_filter($assets, fn ($asset) => !in_array(
             strtolower($asset->extension),
             ['svg', 'gif', 'webp', 'avif']
         ));
@@ -69,7 +69,7 @@ class RunController extends Controller
             Console::startProgress(0, count($filtered), '', 0.8);
 
             foreach ($filtered as $asset) {
-                ImageTransformService::transformImage($asset->id);
+                ImageTransformService::transformImage($asset->id, true);
                 $counter = $counter + 1;
                 Console::updateProgress($counter, count($filtered));
             }

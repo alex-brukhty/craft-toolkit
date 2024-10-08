@@ -27,7 +27,7 @@ use yii\web\BadRequestHttpException;
 
 class ImageTransformService
 {
-    public const string TRANSFORMED_IMAGES_PATH = '@webroot/media_optimised';
+    public const TRANSFORMED_IMAGES_PATH = '@webroot/media_optimised';
 
     public static function isEnabled(): bool
     {
@@ -91,7 +91,7 @@ class ImageTransformService
     {
 
         $domain = self::getWebsiteDomain();
-        $assetUrl = $domain.$asset->url;
+        $assetUrl = $domain.UrlHelper::rootRelativeUrl($asset->url);
 
         $url = UrlHelper::url(self::getApiUrl(), [
             'url' => $assetUrl,
@@ -123,14 +123,14 @@ class ImageTransformService
      * @throws GuzzleException
      * @throws Throwable
      */
-    public static function transformImage(string $assetId): void
+    public static function transformImage(string $assetId, $forced = false): void
     {
         $asset = Asset::find()->id($assetId)->one();
 
         if (!$asset) {
             return;
         }
-        if ($asset->transformUrls) {
+        if ($asset->transformUrls && !$forced) {
             return;
         }
 
@@ -162,13 +162,10 @@ class ImageTransformService
         FileHelper::removeDirectory(self::getTransformFolder($asset, true));
     }
 
-    /**
-     * @throws InvalidConfigException
-     */
     public static function getTransformFolder(Asset $asset, $asFile = false): string
     {
-        $baseUrl = $asset->getVolume()->getFs()->getRootUrl();
-        $uri = ltrim($asset->url, $baseUrl);
+        $uri = UrlHelper::rootRelativeUrl($asset->url);
+
         $uriWithoutMedia = ltrim($uri, 'media');
 
         if ($asFile) {
@@ -187,8 +184,6 @@ class ImageTransformService
     {
         return FileHelper::normalizePath(self::getTransformFolder($asset, $asFile).'/'.$transform->width);
     }
-
-    // get ulr of transformed image
 
     /**
      * @throws InvalidConfigException
@@ -226,6 +221,9 @@ class ImageTransformService
         }
 
         $transforms = json_decode($transformsString);
+        if (count($transforms) === 0) {
+            return $asset->url;
+        }
 
         return $last ? $transforms[array_key_last($transforms)]->uri : $transforms[0]->uri;
     }
