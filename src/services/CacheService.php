@@ -5,6 +5,8 @@ namespace alexbrukhty\crafttoolkit\services;
 use alexbrukhty\crafttoolkit\Toolkit;
 use Craft;
 use craft\base\Element;
+use craft\elements\Entry;
+use craft\elements\Asset;
 use craft\events\ElementEvent;
 use craft\events\MultiElementActionEvent;
 use craft\events\RegisterCacheOptionsEvent;
@@ -121,10 +123,15 @@ class CacheService
                 Event::on(Elements::class, $event,
                     function(ElementEvent|MultiElementActionEvent $event) {
                         /** @var Element $element */
-                        // $element = $event->element;
+                         $element = $event->element;
+                         if (
+                             $element::class === Entry::class
+                             || $element::class === Asset::class
+                         ) {
+                            // TODO: this is temp
+                            $this->clearAllCache();
+                         }
 
-                        // TODO: this is temp
-                        $this->clearAllCache();
                     }
                 );
             }

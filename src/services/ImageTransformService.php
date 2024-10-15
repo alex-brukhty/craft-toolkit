@@ -15,7 +15,6 @@ use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
 use Imagick;
 use ImagickException;
-use alexbrukhty\crafttoolkit\jobs\RemoveTransformImageJob;
 use alexbrukhty\crafttoolkit\jobs\TransformImageJob;
 use yii\base\ErrorException;
 use yii\base\Event;
