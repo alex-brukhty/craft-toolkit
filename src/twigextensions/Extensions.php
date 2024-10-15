@@ -278,7 +278,7 @@ class Extensions extends AbstractExtension
                 'div',
                 Html::svg($asset),
                 [
-                    'class' => $class
+                    'class' => $class,
                 ]
             );
         }
