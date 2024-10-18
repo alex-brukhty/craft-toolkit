@@ -88,7 +88,6 @@ class ImageTransformService
      */
     public static function getTransformedImage(ImageTransformModel $transform, Asset $asset): string
     {
-
         $domain = self::getWebsiteDomain();
         $assetUrl = $domain.UrlHelper::rootRelativeUrl($asset->url);
 
@@ -110,9 +109,11 @@ class ImageTransformService
                 return self::getTransformUri($asset, $transform);
             }
 
-            return new BadRequestHttpException("Failed to transform using: $url, and save to: $save");
+            Craft::getLogger()->log("Failed to transform using: $url, and save to: $save", Logger::LEVEL_ERROR);
+            return '';
         } catch (ImagickException|Exception $e) {
-            return new BadRequestHttpException("Failed to transform: $url, $e");
+            Craft::getLogger()->log("Failed to transform: $url, $e", Logger::LEVEL_ERROR);
+            return '';
         }
     }
 
@@ -136,8 +137,10 @@ class ImageTransformService
         $transforms = Craft::$app->imageTransforms->getAllTransforms();
         ArrayHelper::multisort($transforms, 'width');
 
+        $parsed = [];
+
         try {
-            $urls = array_map(function ($transform) use ($asset) {
+            $parsed = array_map(function ($transform) use ($asset) {
                 return [
                     'uri' => "/".self::getTransformedImage($transform, $asset),
                     'width' => $transform->width
@@ -148,7 +151,9 @@ class ImageTransformService
             return;
         }
 
-        $asset->setFieldValue('transformUrls', json_encode($urls));
+        $parsed = array_filter($parsed, fn ($tr) => $tr['uri'] !== '/');
+
+        $asset->setFieldValue('transformUrls', json_encode($parsed));
         Craft::$app->elements->saveElement($asset);
     }
 
