@@ -12,6 +12,8 @@ class Settings extends Model
     public bool $cacheEnabled = false;
     public array $cacheInclude = [];
     public array $cacheExclude = [];
+
+    public array $excludeSites = [];
     public string $cacheBasePath = '@webroot/static';
     public bool $imageTransformEnabled = false;
     public string $imageTransformApiUrl = 'https://wsrv.nl/';

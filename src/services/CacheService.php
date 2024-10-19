@@ -27,6 +27,7 @@ class CacheService
     private bool $enabled;
     private array $includePattern;
     private array $excludePattern;
+    private array $excludeSiteId;
     private string $siteUrl;
     public string $cacheBasePath;
 
@@ -34,6 +35,7 @@ class CacheService
         $this->enabled = Toolkit::getInstance()->getSettings()->cacheEnabled ?? false;
         $this->includePattern = Toolkit::getInstance()->getSettings()->cacheInclude ?? [];
         $this->excludePattern = Toolkit::getInstance()->getSettings()->cacheExclude ?? [];
+        $this->excludeSiteId = Toolkit::getInstance()->getSettings()->excludeSites ?? [];
         $this->siteUrl = Craft::$app->getSites()->currentSite->baseUrl;
 
         $cacheBasePath = Toolkit::getInstance()->getSettings()->cacheBasePath ?? '@webroot/static';
@@ -43,12 +45,11 @@ class CacheService
     public function registerEvents(): void
     {
         if ($this->enabled) {
-            Event::on(Response::class, ResponseAlias::EVENT_AFTER_PREPARE,
+            Event::on(Response::class, ResponseAlias::EVENT_AFTER_SEND,
                 function(Event $event) {
                     /** @var Response $response */
                     $request = Craft::$app->getRequest();
                     $response = $event->sender;
-                    $uri = $request->getFullUri();
 
                     if (!$request->getIsSiteRequest()
                         || $request->getQueryString()
@@ -77,6 +78,13 @@ class CacheService
                         return;
                     }
 
+                    $uri = $request->getFullUri();
+                    $siteId = Craft::$app->getSites()->getCurrentSite()->id;
+
+                    if (in_array($siteId, $this->excludeSiteId, true)) {
+                        return;
+                    }
+
                     if (
                         $this->excludePattern
                         && $this->matchesUriPatterns(
@@ -92,15 +100,6 @@ class CacheService
                         && !$this->matchesUriPatterns(
                             $uri,
                             $this->includePattern
-                        )
-                    ) {
-                        return;
-                    }
-
-                    if (
-                        $this->matchesUriPatterns(
-                            $uri,
-                            ['sitemap.xml']
                         )
                     ) {
                         return;

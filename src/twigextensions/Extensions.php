@@ -63,6 +63,8 @@ class Extensions extends AbstractExtension
             new TwigFunction('media', [$this, 'media'], ['is_safe' => ['html']]),
             new TwigFunction('imageMarkup', [$this, 'imageMarkup'], ['is_safe' => ['html']]),
             new TwigFunction('player', [$this, 'player'], ['is_safe' => ['html']]),
+            new TwigFunction('htmxValsObj', [$this, 'htmxValsObj']),
+            new TwigFunction('htmxVals', [$this, 'htmxVals']),
         ];
     }
 
@@ -363,5 +365,22 @@ class Extensions extends AbstractExtension
     public function isExternalUrl($url)
     {
         return str_contains($url, '//') && !str_contains($url, UrlHelper::siteHost());
+    }
+
+    public function htmxValsObj(array $vals): array
+    {
+        $request = Craft::$app->getRequest();
+        $vals[$request->csrfParam] = $request->getCsrfToken();
+
+        if (isset($vals['redirect'])) {
+            $vals['redirect'] = Craft::$app->getSecurity()->hashData($vals['redirect']);
+        }
+
+        return $vals;
+    }
+
+    public function htmxVals(array $vals): string
+    {
+        return json_encode($this->htmxValsObj($vals));
     }
 }
