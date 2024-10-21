@@ -125,6 +125,7 @@ class CacheService
                          $element = $event->element;
                          if (
                              $element::class === Entry::class
+                             || $element::class === 'craft\\commerce\\elements\\Product'
                              || $element::class === Asset::class
                          ) {
                             // TODO: this is temp
