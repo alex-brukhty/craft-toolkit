@@ -3,6 +3,7 @@
 namespace alexbrukhty\crafttoolkit\services;
 
 use alexbrukhty\crafttoolkit\Toolkit;
+use alexbrukhty\crafttoolkit\utilities\CacheUtility;
 use Craft;
 use craft\base\Element;
 use craft\elements\Entry;
@@ -10,9 +11,11 @@ use craft\elements\Asset;
 use craft\events\ElementEvent;
 use craft\events\MultiElementActionEvent;
 use craft\events\RegisterCacheOptionsEvent;
+use craft\events\RegisterComponentTypesEvent;
 use craft\helpers\App;
 use craft\helpers\FileHelper;
 use craft\services\Elements;
+use craft\services\Utilities;
 use craft\utilities\ClearCaches;
 use craft\web\Response;
 use yii\base\ErrorException;
@@ -135,6 +138,15 @@ class CacheService
                     }
                 );
             }
+
+        }
+
+        if (Craft::$app->getRequest()->getIsCpRequest()) {
+            Event::on(Utilities::class, Utilities::EVENT_REGISTER_UTILITIES,
+                function(RegisterComponentTypesEvent $event) {
+                    $event->types[] = CacheUtility::class;
+                }
+            );
         }
     }
 
@@ -215,17 +227,15 @@ class CacheService
         FileHelper::unlink($filePath);
     }
 
-    public function getCachedPageCount(string $path): int
+    public function getCachedPageCount(): int
     {
-        if (!$this->countCachedFiles) {
-            return 0;
-        }
-
+        $path = $this->cacheBasePath;
         if (!is_dir($path)) {
             return 0;
         }
 
         return count(FileHelper::findFiles($path, [
+//            'except' => [some . '/'],
             'only' => ['index.html'],
         ]));
     }

@@ -1,0 +1,10 @@
+<form class="utility" method="post" accept-charset="UTF-8">
+  {{ actionInput('_toolkit/cache') }}
+  {{ redirectInput('/admin/utilities/toolkit-cache') }}
+  {{ csrfInput() }}
+
+
+  <input type="submit" class="btn submit" value="Clear Cache">
+</form>
+
+<p>Cached pages: {{ cachedPagesCount }}</p>
