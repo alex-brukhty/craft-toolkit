@@ -323,11 +323,10 @@ class Extensions extends AbstractExtension
     /**
      * @throws Throwable
      */
-    public function media(Asset|null $asset, $transformName = 'fullWidth', $options = []): string
+    public function media(Asset|null $asset, $options = [], $transformName = 'fullWidth'): string
     {
-        $mobileMedia = $asset->mobileImage->one ?? $asset->mobileVideo->one ?? null;
-
-        return $this->mediaBase($mobileMedia, 'fullWidth', $options).$this->mediaBase($asset, $transformName, [...$options, 'hasMobile' => $mobileMedia]);
+        $mobileMedia = $asset->mobileImage[0] ?? ($asset->mobileVideo[0] ?? null);
+        return ($mobileMedia ? $this->mediaBase($mobileMedia, $options, $transformName) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $transformName);
     }
 
     public function player(Asset|null $asset)
