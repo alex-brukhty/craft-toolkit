@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3e5ecc27f47e1454a716bcdb35f911b5",
+    "content-hash": "f504912a646c1723096d79a89b8d6964",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -331,16 +331,16 @@
         },
         {
             "name": "craftcms/cms",
-            "version": "5.4.6",
+            "version": "5.4.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craftcms/cms.git",
-                "reference": "d44a2d4628b02db2290ecff4248ba70f664c070d"
+                "reference": "8c354fc15b0fba8a8b9363f0f98883a76e57795f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/craftcms/cms/zipball/d44a2d4628b02db2290ecff4248ba70f664c070d",
-                "reference": "d44a2d4628b02db2290ecff4248ba70f664c070d",
+                "url": "https://api.github.com/repos/craftcms/cms/zipball/8c354fc15b0fba8a8b9363f0f98883a76e57795f",
+                "reference": "8c354fc15b0fba8a8b9363f0f98883a76e57795f",
                 "shasum": ""
             },
             "require": {
@@ -453,7 +453,7 @@
                 "rss": "https://github.com/craftcms/cms/releases.atom",
                 "source": "https://github.com/craftcms/cms"
             },
-            "time": "2024-09-27T18:53:45+00:00"
+            "time": "2024-10-22T19:14:27+00:00"
         },
         {
             "name": "craftcms/plugin-installer",
@@ -2250,16 +2250,16 @@
         },
         {
             "name": "phpstan/phpdoc-parser",
-            "version": "1.32.0",
+            "version": "1.33.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpdoc-parser.git",
-                "reference": "6ca22b154efdd9e3c68c56f5d94670920a1c19a4"
+                "reference": "82a311fd3690fb2bf7b64d5c98f912b3dd746140"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/6ca22b154efdd9e3c68c56f5d94670920a1c19a4",
-                "reference": "6ca22b154efdd9e3c68c56f5d94670920a1c19a4",
+                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/82a311fd3690fb2bf7b64d5c98f912b3dd746140",
+                "reference": "82a311fd3690fb2bf7b64d5c98f912b3dd746140",
                 "shasum": ""
             },
             "require": {
@@ -2291,9 +2291,9 @@
             "description": "PHPDoc parser with support for nullable, intersection and generic types",
             "support": {
                 "issues": "https://github.com/phpstan/phpdoc-parser/issues",
-                "source": "https://github.com/phpstan/phpdoc-parser/tree/1.32.0"
+                "source": "https://github.com/phpstan/phpdoc-parser/tree/1.33.0"
             },
-            "time": "2024-09-26T07:23:32+00:00"
+            "time": "2024-10-13T11:25:22+00:00"
         },
         {
             "name": "pixelandtonic/imagine",
@@ -2998,63 +2998,6 @@
                 "source": "https://github.com/ralouphie/getallheaders/tree/develop"
             },
             "time": "2019-03-08T08:55:37+00:00"
-        },
-        {
-            "name": "ryssbowh/craft-warmer",
-            "version": "3.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ryssbowh/craft-warmer.git",
-                "reference": "4422ec26830b80dcb79f2f3607ccf5758e49bc7e"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ryssbowh/craft-warmer/zipball/4422ec26830b80dcb79f2f3607ccf5758e49bc7e",
-                "reference": "4422ec26830b80dcb79f2f3607ccf5758e49bc7e",
-                "shasum": ""
-            },
-            "require": {
-                "craftcms/cms": "^5.0",
-                "ryssbowh/php-cache-warmer": "^1.0"
-            },
-            "type": "craft-plugin",
-            "extra": {
-                "documentationUrl": "https://www.webpuzzlers.co.uk/plugins/cache-warmer",
-                "developer": "The Web Puzzlers",
-                "developerUrl": "https://www.webpuzzlers.co.uk",
-                "name": "Cache Warmer",
-                "handle": "craftwarmer",
-                "class": "Ryssbowh\\CraftWarmer\\CraftWarmer"
-            },
-            "autoload": {
-                "psr-4": {
-                    "Ryssbowh\\CraftWarmer\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "The Web Puzzlers",
-                    "homepage": "https://github.com/ryssbowh"
-                }
-            ],
-            "description": "A cache warmer for Craft 5",
-            "keywords": [
-                "Craft",
-                "caching",
-                "cms",
-                "craft-plugin",
-                "craftcms"
-            ],
-            "support": {
-                "docs": "https://github.com/ryssbowh/craft-warmer/blob/master/README.md",
-                "issues": "https://github.com/ryssbowh/craft-warmer/issues",
-                "source": "https://github.com/ryssbowh/craft-warmer/tree/3.0.0"
-            },
-            "time": "2024-04-04T04:41:24+00:00"
         },
         {
             "name": "ryssbowh/php-cache-warmer",
