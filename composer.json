@@ -5,8 +5,7 @@
   "require": {
     "php": ">=8.2",
     "craftcms/cms": "^5.4.0",
-    "ryssbowh/php-cache-warmer": "^1.0",
-    "vipnytt/sitemapparser": "^1.3"
+    "ryssbowh/craft-warmer": "^3.0"
   },
   "autoload": {
     "psr-4": {
