@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "769b669996a6313ccfc05c28566452d9",
+    "content-hash": "5526bdc91741ff762d03afd12f92025a",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3000,6 +3000,53 @@
             "time": "2019-03-08T08:55:37+00:00"
         },
         {
+            "name": "ryssbowh/php-cache-warmer",
+            "version": "1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ryssbowh/php-cache-warmer.git",
+                "reference": "ac70b384c9901869e2fb21669e41e809b36071dc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ryssbowh/php-cache-warmer/zipball/ac70b384c9901869e2fb21669e41e809b36071dc",
+                "reference": "ac70b384c9901869e2fb21669e41e809b36071dc",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": ">=6",
+                "php": ">=7.0",
+                "vipnytt/sitemapparser": "^1.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Ryssbowh\\PhpCacheWarmer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Boris Blondin"
+                }
+            ],
+            "description": "An asynchronous php cache warmer",
+            "keywords": [
+                "Guzzle",
+                "cache warmer",
+                "caching"
+            ],
+            "support": {
+                "docs": "https://github.com/ryssbowh/php-cache-warmer/blob/master/README.md",
+                "issues": "https://github.com/ryssbowh/php-cache-warmer/issues",
+                "source": "https://github.com/ryssbowh/php-cache-warmer/tree/1.0.1"
+            },
+            "time": "2021-01-24T08:55:02+00:00"
+        },
+        {
             "name": "samdark/yii2-psr-log-target",
             "version": "1.1.4",
             "source": {
@@ -5568,6 +5615,73 @@
             "time": "2024-09-09T17:55:12+00:00"
         },
         {
+            "name": "vipnytt/sitemapparser",
+            "version": "v1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/VIPnytt/SitemapParser.git",
+                "reference": "c414ec31b7d76f5dee32779e5f5efaa5e2786625"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/VIPnytt/SitemapParser/zipball/c414ec31b7d76f5dee32779e5f5efaa5e2786625",
+                "reference": "c414ec31b7d76f5dee32779e5f5efaa5e2786625",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "ext-simplexml": "*",
+                "guzzlehttp/guzzle": "^6.0 || ^7.0",
+                "lib-libxml": "*",
+                "php": "^5.6 || ^7.0 || ^8.0"
+            },
+            "require-dev": {
+                "codeclimate/php-test-reporter": "^0",
+                "phpunit/phpunit": "^5.0 || ^6.0 || ^7.0 || ^8.0"
+            },
+            "suggest": {
+                "caseyamcl/guzzle_retry_middleware": "Allow automatic retry when request for sitemap fails",
+                "gmponos/guzzle_logger": "Advanced logging",
+                "hamburgscleanest/guzzle-advanced-throttle": "Throttle requests"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "vipnytt\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "VIP nytt",
+                    "email": "vipnytt@gmail.com",
+                    "role": "creator"
+                },
+                {
+                    "name": "Jan-Petter Gundersen",
+                    "email": "europe.jpg@gmail.com",
+                    "role": "developer"
+                }
+            ],
+            "description": "XML Sitemap parser class compliant with the Sitemaps.org protocol.",
+            "homepage": "https://github.com/VIPnytt/SitemapParser",
+            "keywords": [
+                "Sitemap",
+                "parser",
+                "robots.txt",
+                "sitemaps.org",
+                "xml"
+            ],
+            "support": {
+                "issues": "https://github.com/VIPnytt/SitemapParser/issues",
+                "source": "https://github.com/VIPnytt/SitemapParser/tree/v1.3.0"
+            },
+            "time": "2023-11-27T15:24:01+00:00"
+        },
+        {
             "name": "voku/anti-xss",
             "version": "4.1.42",
             "source": {
@@ -7009,5 +7123,5 @@
     "platform-overrides": {
         "php": "8.2"
     },
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.6.0"
 }
