@@ -4,6 +4,7 @@
   "type": "craft-plugin",
   "require": {
     "php": ">=8.2",
+    "br33f/php-ga4-mp": "^0.1.5",
     "craftcms/cms": "^5.4.0",
     "ryssbowh/php-cache-warmer": "^1.0",
     "vipnytt/sitemapparser": "^1.3"
