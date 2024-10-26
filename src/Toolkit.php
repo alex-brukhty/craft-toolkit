@@ -51,12 +51,11 @@ class Toolkit extends Plugin
 
     private function attachEventHandlers(): void
     {
-        $cacheService = new CacheService();
-        $cacheService->registerEvents();
+        $this->cacheService->registerEvents();
         ImageTransformService::registerEvents();
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
-            $cacheService->registerClearCaches();
+            $this->cacheService->registerClearCaches();
         }
     }
 }

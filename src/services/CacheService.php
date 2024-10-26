@@ -262,8 +262,7 @@ class CacheService
                 continue;
             }
             $parser->parseRecursive($url.$settings->sitemapUrl);
-            $data = array_merge($data, array_keys($parser->getUrls()));
-
+            $data = array_merge([$url], array_keys($parser->getUrls()));
         }
 
         return $data;
