@@ -8,6 +8,7 @@ use Craft;
 use craft\base\Element;
 use craft\elements\Entry;
 use craft\elements\Asset;
+use craft\errors\SiteNotFoundException;
 use craft\events\ElementEvent;
 use craft\events\MultiElementActionEvent;
 use craft\events\RegisterCacheOptionsEvent;
@@ -18,6 +19,9 @@ use craft\services\Elements;
 use craft\services\Utilities;
 use craft\utilities\ClearCaches;
 use craft\web\Response;
+use Ryssbowh\PhpCacheWarmer\Warmer;
+use vipnytt\SitemapParser;
+use vipnytt\SitemapParser\Exceptions\SitemapParserException;
 use yii\base\ErrorException;
 use yii\base\Event;
 use yii\base\Exception;
@@ -28,21 +32,19 @@ class CacheService
 {
     private int $countCachedFiles = 0;
     private bool $enabled;
-    private array $includePattern;
-    private array $excludePattern;
-    private array $excludeSiteId;
-    private string $siteUrl;
-    public string $cacheBasePath;
+    private string $cacheBasePath = '';
+    private string $siteUrl = '';
 
     public function __construct() {
-        $this->enabled = Toolkit::getInstance()->getSettings()->cacheEnabled ?? false;
-        $this->includePattern = Toolkit::getInstance()->getSettings()->cacheInclude ?? [];
-        $this->excludePattern = Toolkit::getInstance()->getSettings()->cacheExclude ?? [];
-        $this->excludeSiteId = Toolkit::getInstance()->getSettings()->excludeSites ?? [];
+        $this->enabled = $this->getSettings()->cacheEnabled ?? false;
         $this->siteUrl = Craft::$app->getSites()->currentSite->baseUrl;
-
-        $cacheBasePath = Toolkit::getInstance()->getSettings()->cacheBasePath ?? '@webroot/static';
+        $cacheBasePath = $this->getSettings()->cacheBasePath ?? '@webroot/static';
         $this->cacheBasePath = FileHelper::normalizePath(App::parseEnv($cacheBasePath));
+    }
+
+    public function getSettings()
+    {
+        return Toolkit::getInstance()->getSettings();
     }
 
     public function registerEvents(): void
@@ -84,25 +86,29 @@ class CacheService
                     $uri = $request->getFullUri();
                     $siteId = Craft::$app->getSites()->getCurrentSite()->id;
 
-                    if (in_array($siteId, $this->excludeSiteId, true)) {
+                    if (in_array($siteId, $this->getSettings()->excludeSiteId ?? [], true)) {
                         return;
                     }
 
+                    $excludePattern = $this->getSettings()->cacheExclude ?? [];
+
                     if (
-                        $this->excludePattern
+                        count($excludePattern)
                         && $this->matchesUriPatterns(
                             $uri,
-                            $this->excludePattern
+                            $excludePattern
                         )
                     ) {
                         return;
                     }
 
+                    $includePattern = $this->getSettings()->cacheInclude ?? [];
+
                     if (
-                        $this->includePattern
+                        count($includePattern)
                         && !$this->matchesUriPatterns(
                             $uri,
-                            $this->includePattern
+                            $includePattern
                         )
                     ) {
                         return;
@@ -238,5 +244,35 @@ class CacheService
 //            'except' => [some . '/'],
             'only' => ['index.html'],
         ]));
+    }
+
+    /**
+     * @throws SiteNotFoundException
+     * @throws SitemapParserException
+     */
+    public function getUrlsToWarm(): array
+    {
+        $settings = $this->getSettings();
+        $parser = new SitemapParser(SitemapParser::DEFAULT_USER_AGENT);
+        $data = [];
+        $sitesIds = count($settings->warmSiteIds) > 0 ? $settings->warmSiteIds : [Craft::$app->sites->getCurrentSite()->id];
+        foreach ($sitesIds as $id) {
+            $site = Craft::$app->sites->getSiteById($id);
+            if (!$url = $site->getBaseUrl()) {
+                continue;
+            }
+            $parser->parseRecursive($url.$settings->sitemapUrl);
+            $data = array_merge($data, array_keys($parser->getUrls()));
+
+        }
+
+        return $data;
+    }
+
+    public function warmUrls($urls, $concurrent = 10)
+    {
+        $warmer = new Warmer($concurrent);
+        $warmer->addUrls($urls);
+        return $warmer->warm();
     }
 }

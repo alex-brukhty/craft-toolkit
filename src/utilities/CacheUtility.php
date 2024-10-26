@@ -2,7 +2,6 @@
 
 namespace alexbrukhty\crafttoolkit\utilities;
 
-use alexbrukhty\crafttoolkit\services\CacheService;
 use alexbrukhty\crafttoolkit\Toolkit;
 use Craft;
 use craft\base\Utility;

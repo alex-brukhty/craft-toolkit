@@ -10,10 +10,6 @@ use yii\base\ErrorException;
 use yii\base\Exception;
 use yii\queue\RetryableJobInterface;
 
-/**
- *
- * @property-read int $ttr
- */
 class TransformImageJob extends BaseJob implements RetryableJobInterface
 {
 

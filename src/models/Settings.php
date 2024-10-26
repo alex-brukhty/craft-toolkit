@@ -18,6 +18,10 @@ class Settings extends Model
     public bool $imageTransformEnabled = false;
     public string $imageTransformApiUrl = 'https://wsrv.nl/';
 
+    public array $warmSiteIds = [];
+
+    public string $sitemapUrl = 'sitemap.xml';
+
     /**
      * @var string
      * for use in dev mode only to make local images available for external API
