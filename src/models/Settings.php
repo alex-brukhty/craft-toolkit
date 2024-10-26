@@ -27,4 +27,7 @@ class Settings extends Model
      * for use in dev mode only to make local images available for external API
      */
     public string $imageTransformPublicUrl = '';
+
+    public string $ga4MeasurementId = '';
+    public string $ga4MeasurementSecret = '';
 }

@@ -5,6 +5,7 @@ namespace alexbrukhty\crafttoolkit;
 use Craft;
 use alexbrukhty\crafttoolkit\services\CacheService;
 use alexbrukhty\crafttoolkit\services\ImageTransformService;
+use alexbrukhty\crafttoolkit\services\AnalyticsService;
 use alexbrukhty\crafttoolkit\models\Settings;
 use alexbrukhty\crafttoolkit\twigextensions\Extensions;
 use craft\base\Model;
@@ -26,6 +27,7 @@ class Toolkit extends Plugin
             'components' => [
                 'cacheService' => ['class' => CacheService::class],
                 'imageTransformService' => ['class' => ImageTransformService::class],
+                'analyticsService' => ['class' => AnalyticsService::class],
             ],
         ];
     }
