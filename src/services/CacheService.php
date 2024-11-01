@@ -86,7 +86,7 @@ class CacheService
                     $uri = $request->getFullUri();
                     $siteId = Craft::$app->getSites()->getCurrentSite()->id;
 
-                    if (in_array($siteId, $this->getSettings()->excludeSiteId ?? [], true)) {
+                    if (in_array($siteId, $this->getSettings()->excludeSiteIds ?? [], true)) {
                         return;
                     }
 
