@@ -181,6 +181,7 @@ class Extensions extends AbstractExtension
         $inset     = $options['inset'] ?? false;
         $grayscale = $options['grayscale'] ?? false;
         $hasMobile = $options['hasMobile'] ?? false;
+        $isMobile = $options['isMobile'] ?? false;
 
         $parsedSizes = $sizes ? $this->_parseSized($sizes) : '';
         $ratioSvg = $width && $height ? Html::tag('svg', null, [
@@ -207,6 +208,7 @@ class Extensions extends AbstractExtension
                 'class' => [
                     'image-wrap',
                     $hasMobile ? 'to-md:hidden' : null,
+                    $isMobile ? 'md:hidden' : null,
                     $lazy ? 'lazy-wrap' : null,
                     $isPng ? 'is-transparent' : null,
                     $inset ? 'inset-image' : null,
@@ -233,7 +235,8 @@ class Extensions extends AbstractExtension
         $isGif = $asset->extension == 'gif';
         $isPng = $asset->extension == 'png';
         $inset = $options['inset'] ?? false;
-        $mobileMedia = $options['hasMobile'] ?? false;
+        $hasMobile = $options['hasMobile'] ?? false;
+        $isMobile = $options['isMobile'] ?? false;
 
         $ratioSvg = Html::tag('svg', null, [
             'class' => 'image-ratio',
@@ -266,7 +269,8 @@ class Extensions extends AbstractExtension
                 [
                     'class' => [
                         'video-wrap',
-                        $mobileMedia ? 'to-md:hidden' : null,
+                        $hasMobile ? 'to-md:hidden' : null,
+                        $isMobile ? 'md:hidden' : null,
                         $lazy ? 'lazy-video' : null,
                         $inset ? 'inset-image' : null,
                         $class,
@@ -280,7 +284,11 @@ class Extensions extends AbstractExtension
                 'div',
                 Html::svg($asset),
                 [
-                    'class' => $class,
+                    'class' => [
+                        $class ?? null,
+                        $hasMobile ? 'to-md:hidden' : null,
+                        $isMobile ? 'md:hidden' : null,
+                    ],
                 ]
             );
         }
@@ -316,7 +324,8 @@ class Extensions extends AbstractExtension
             'isPng' => $isPng,
             'inset' => $inset,
             'grayscale' => $grayscale,
-            'hasMobile' => $mobileMedia,
+            'hasMobile' => $hasMobile,
+            'isMobile' => $isMobile,
         ]);
     }
 
@@ -326,7 +335,7 @@ class Extensions extends AbstractExtension
     public function media(Asset|null $asset, $options = [], $transformName = 'fullWidth'): string
     {
         $mobileMedia = $asset->mobileImage[0] ?? ($asset->mobileVideo[0] ?? null);
-        return ($mobileMedia ? $this->mediaBase($mobileMedia, $options, $transformName) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $transformName);
+        return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => !!$mobileMedia], $transformName) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $transformName);
     }
 
     public function player(Asset|null $asset)
