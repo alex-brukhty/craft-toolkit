@@ -32,6 +32,7 @@ class CacheController extends Controller
         $this->stdout('Warming Cache' . PHP_EOL, BaseConsole::FG_YELLOW);
 
         $cacheService = Toolkit::getInstance()->cacheService;
+        $cacheService->clearAllCache();
         $urls = $cacheService->getUrlsToWarm();
         $urlsCount = count($urls);
         $chunks = array_chunk($urls, 10);
