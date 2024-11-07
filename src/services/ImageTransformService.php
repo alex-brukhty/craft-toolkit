@@ -99,21 +99,18 @@ class ImageTransformService
 
         $save = self::getTransformUri($asset, $transform, true);
 
+        Craft::getLogger()->log("Transform: $url", Logger::LEVEL_INFO, 'image-transform');
+
         try {
             $manager = new ImageManager(new Driver());
-            $image = $manager->read($url);
-            $image->save('images/foo.png');
+            $image = $manager->read(file_get_contents($url));
 
             FileHelper::createDirectory(self::getTransformFolderFull($asset, $transform, true));
+            $image->save($save);
 
-            if ($image->save($save)) {
-                return self::getTransformUri($asset, $transform);
-            }
-
-            Craft::getLogger()->log("Failed to transform using: $url, and save to: $save", Logger::LEVEL_ERROR);
-            return '';
-        } catch (ImagickException|Exception $e) {
-            Craft::getLogger()->log("Failed to transform: $url, $e", Logger::LEVEL_ERROR);
+            return self::getTransformUri($asset, $transform);
+        } catch (Exception $e) {
+            Craft::getLogger()->log("Failed to transform: $url, $e", Logger::LEVEL_ERROR,'image-transform');
             return '';
         }
     }
