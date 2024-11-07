@@ -13,8 +13,6 @@ use craft\models\ImageTransform as ImageTransformModel;
 use craft\helpers\FileHelper;
 use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
-use Imagick;
-use ImagickException;
 use alexbrukhty\crafttoolkit\jobs\TransformImageJob;
 use yii\base\ErrorException;
 use yii\base\Event;
@@ -22,7 +20,8 @@ use yii\base\Exception;
 use Throwable;
 use yii\base\InvalidConfigException;
 use yii\log\Logger;
-use yii\web\BadRequestHttpException;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class ImageTransformService
 {
@@ -101,11 +100,13 @@ class ImageTransformService
         $save = self::getTransformUri($asset, $transform, true);
 
         try {
-            $image = new Imagick($url);
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($url);
+            $image->save('images/foo.png');
 
             FileHelper::createDirectory(self::getTransformFolderFull($asset, $transform, true));
 
-            if ($image->writeImages($save, true)) {
+            if ($image->save($save)) {
                 return self::getTransformUri($asset, $transform);
             }
 
