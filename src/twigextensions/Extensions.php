@@ -7,6 +7,7 @@ use craft\elements\Asset;
 use craft\errors\InvalidFieldException;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
+use craft\helpers\ArrayHelper;
 use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use Throwable;
 use Twig\Extension\AbstractExtension;
@@ -65,6 +66,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('player', [$this, 'player'], ['is_safe' => ['html']]),
             new TwigFunction('htmxValsObj', [$this, 'htmxValsObj']),
             new TwigFunction('htmxVals', [$this, 'htmxVals']),
+            new TwigFunction('arrayGet', [ArrayHelper::class, 'getValue']),
         ];
     }
 
