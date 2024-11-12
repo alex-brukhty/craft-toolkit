@@ -60,6 +60,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('isExternalUrl', [$this, 'isExternalUrl']),
             new TwigFunction('class', [$this, 'classHelper'], ['is_safe' => ['html']]),
             new TwigFunction('style', [$this, 'styleHelper'], ['is_safe' => ['html']]),
+            new TwigFunction('styleFiltered', [$this, 'styleFiltered']),
             new TwigFunction('mediaBase', [$this, 'mediaBase'], ['is_safe' => ['html']]),
             new TwigFunction('media', [$this, 'media'], ['is_safe' => ['html']]),
             new TwigFunction('imageMarkup', [$this, 'imageMarkup'], ['is_safe' => ['html']]),
@@ -116,13 +117,16 @@ class Extensions extends AbstractExtension
         return Html::renderTagAttributes(['class' => $array]);
     }
 
-    public function styleHelper(Array $obg)
+    public function styleFiltered(Array $obg): array
     {
-        $filtered = array_filter($obg, function ($val) {
+        return array_filter($obg, function ($val) {
             return !!$val;
         });
+    }
 
-        return Html::renderTagAttributes(['style' => $filtered]);
+    public function styleHelper(Array $obg)
+    {
+        return Html::renderTagAttributes(['style' => $this->styleFiltered($obg)]);
     }
 
     public function fixSrcsetSpaces($string)
