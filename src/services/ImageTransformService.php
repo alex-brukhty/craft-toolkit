@@ -2,6 +2,7 @@
 
 namespace alexbrukhty\crafttoolkit\services;
 
+use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use Craft;
 use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\InvalidFieldException;
@@ -10,7 +11,7 @@ use craft\helpers\ArrayHelper;
 use craft\helpers\Queue;
 use craft\helpers\UrlHelper;
 use craft\models\ImageTransform as ImageTransformModel;
-use craft\helpers\FileHelper;
+use craft\helpers\FileHelper as CraftFileHelper;
 use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
 use alexbrukhty\crafttoolkit\jobs\TransformImageJob;
@@ -20,8 +21,6 @@ use yii\base\Exception;
 use Throwable;
 use yii\base\InvalidConfigException;
 use yii\log\Logger;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 
 class ImageTransformService
 {
@@ -102,13 +101,11 @@ class ImageTransformService
         Craft::getLogger()->log("Transform: $url", Logger::LEVEL_INFO, 'image-transform');
 
         try {
-            $manager = new ImageManager(new Driver());
-            $image = $manager->read(file_get_contents($url));
-
-            FileHelper::createDirectory(self::getTransformFolderFull($asset, $transform, true));
-            $image->save($save);
-
-            return self::getTransformUri($asset, $transform);
+            CraftFileHelper::createDirectory(self::getTransformFolderFull($asset, $transform, true));
+            if (FileHelper::downloadFile($url, $save, 1, false)) {
+                return self::getTransformUri($asset, $transform);
+            }
+            return '';
         } catch (Exception $e) {
             Craft::getLogger()->log("Failed to transform: $url, $e", Logger::LEVEL_ERROR,'image-transform');
             return '';
@@ -161,7 +158,7 @@ class ImageTransformService
      */
     public static function deleteTransformedImage(Asset $asset): void
     {
-        FileHelper::removeDirectory(self::getTransformFolder($asset, true));
+        CraftFileHelper::removeDirectory(self::getTransformFolder($asset, true));
     }
 
     /**
@@ -175,10 +172,10 @@ class ImageTransformService
 
         if ($asFile) {
             $root = App::parseEnv(self::TRANSFORMED_IMAGES_PATH);
-            return FileHelper::normalizePath($root . DIRECTORY_SEPARATOR . $uriWithoutMedia);
+            return CraftFileHelper::normalizePath($root . DIRECTORY_SEPARATOR . $uriWithoutMedia);
         } else {
             $baseFolder = ltrim(self::TRANSFORMED_IMAGES_PATH, '@webroot/');
-            return FileHelper::normalizePath($baseFolder . DIRECTORY_SEPARATOR . $uriWithoutMedia);
+            return CraftFileHelper::normalizePath($baseFolder . DIRECTORY_SEPARATOR . $uriWithoutMedia);
         }
     }
 
@@ -187,7 +184,7 @@ class ImageTransformService
      */
     public static function getTransformFolderFull(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
-        return FileHelper::normalizePath(self::getTransformFolder($asset, $asFile).'/'.$transform->width);
+        return CraftFileHelper::normalizePath(self::getTransformFolder($asset, $asFile).'/'.$transform->width);
     }
 
     /**
