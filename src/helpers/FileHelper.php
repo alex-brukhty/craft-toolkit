@@ -137,30 +137,30 @@ class FileHelper
      * @throws \yii\base\Exception
      * @throws FsObjectExistsException
      */
-    public function createAssetFromUrl(string $url, string $fileName = ''): Asset|null
+    public static function createAssetFromUrl(string $url, string $fileName = '', $folderName = '', $volumeId = 1): Asset|null
     {
         $filename = self::getRemoteUrlFilename($url, $fileName);
         $tempFilename = CraftFileHelper::uniqueName($filename);
         $tempPath = Craft::$app->getPath()->getTempPath() . DIRECTORY_SEPARATOR . $tempFilename;
 
         if (self::downloadFile($url, $tempPath, 1, false)) {
-            $folder = Craft::$app->getAssets()->findFolder(['name' => 'eventbrite']);
+            $parent = Craft::$app->getAssets()->getRootFolderByVolumeId($volumeId);
+            $folder = $folderName ? Craft::$app->getAssets()->findFolder(['name' => $folderName]) : null;
+            $asset = new Asset();
 
-            if (!$folder) {
-                $parent = Craft::$app->getAssets()->getRootFolderByVolumeId(1);
+            if ($folderName && !$folder) {
                 $folder = new VolumeFolder();
-                $folder->name = 'eventbrite';
+                $folder->name = $folderName;
                 $folder->parentId = $parent->id;
                 $folder->volumeId = 1;
                 $folder->path = $parent->path . $folder->name . '/';
                 Craft::$app->getAssets()->createFolder($folder);
             }
 
-            $asset = new Asset();
             $asset->tempFilePath = $tempPath;
             $asset->setFilename($filename);
-            $asset->newFolderId = $folder->id;
-            $asset->volumeId = $folder->volumeId;
+            $asset->volumeId = $folder ? $folder->volumeId : $parent->volumeId;
+            $asset->newFolderId = $folder ? $folder->id : $parent->id;
             $asset->avoidFilenameConflicts = true;
             $asset->setScenario(Asset::SCENARIO_CREATE);
 
