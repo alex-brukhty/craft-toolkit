@@ -4,6 +4,7 @@ namespace alexbrukhty\crafttoolkit\jobs;
 
 use Craft;
 use alexbrukhty\crafttoolkit\helpers\FileHelper;
+use craft\elements\Entry;
 use craft\elements\Asset;
 use craft\errors\AssetException;
 use craft\errors\ElementNotFoundException;
@@ -23,6 +24,7 @@ class DownloadAssetForEntry extends BaseJob
     public string $title;
     public string $folderName;
     public int $entryId;
+    public int $siteId = 1;
     public string $entryFieldHandle;
     public function canRetry($attempt, $error): bool
     {
@@ -39,10 +41,10 @@ class DownloadAssetForEntry extends BaseJob
      */
     function execute($queue): void
     {
-        $existingAsset = Asset::find()->title($this->title)->one();
+        $existingAsset = Asset::find()->title($this->title)->siteId($this->siteId)->one();
         $asset = $existingAsset ?? FileHelper::createAssetFromUrl($this->url, $this->title, $this->folderName);
         if ($asset) {
-            $entry = Craft::$app->getElements()->getElementById($this->entryId);
+            $entry = Entry::find()->id($this->entryId)->siteId($this->siteId)->one();
             if ($entry) {
                 $entry->setFieldValue($this->entryFieldHandle, [$asset->id]);
                 Craft::$app->elements->saveElement($entry);
