@@ -2,8 +2,8 @@
 
 namespace alexbrukhty\crafttoolkit\services;
 
-use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use Craft;
+use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\InvalidFieldException;
 use craft\helpers\App;
@@ -40,7 +40,7 @@ class ImageTransformService
     {
         return App::devMode()
             ? Toolkit::getInstance()->getSettings()->imageTransformPublicUrl
-            : Craft::$app->getSites()->currentSite->baseUrl;
+            : (Craft::$app->getSites()->getAllSites()[0]?->baseUrl ?? App::parseEnv('PRIMARY_SITE_URL'));
     }
 
     public static function registerEvents(): void
