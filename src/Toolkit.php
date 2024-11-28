@@ -16,6 +16,9 @@ use craft\base\Plugin;
  *
  * @method static Toolkit getInstance()
  * @method Settings getSettings()
+ * @property-read CacheService $cacheService
+ * @property-read ImageTransformService $imageTransformService
+ * @property-read AnalyticsService $analyticsService
  */
 class Toolkit extends Plugin
 {
