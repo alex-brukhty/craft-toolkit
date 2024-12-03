@@ -6,6 +6,7 @@ use Craft;
 use alexbrukhty\crafttoolkit\services\CacheService;
 use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use alexbrukhty\crafttoolkit\services\AnalyticsService;
+use alexbrukhty\crafttoolkit\services\MailchimpService;
 use alexbrukhty\crafttoolkit\models\Settings;
 use alexbrukhty\crafttoolkit\twigextensions\Extensions;
 use craft\base\Model;
@@ -19,6 +20,7 @@ use craft\base\Plugin;
  * @property-read CacheService $cacheService
  * @property-read ImageTransformService $imageTransformService
  * @property-read AnalyticsService $analyticsService
+ * @property-read MailchimpService $mailchimpService
  */
 class Toolkit extends Plugin
 {
@@ -31,6 +33,7 @@ class Toolkit extends Plugin
                 'cacheService' => ['class' => CacheService::class],
                 'imageTransformService' => ['class' => ImageTransformService::class],
                 'analyticsService' => ['class' => AnalyticsService::class],
+                'mailchimpService' => ['class' => MailchimpService::class],
             ],
         ];
     }

@@ -29,4 +29,7 @@ class Settings extends Model
 
     public string $ga4MeasurementId = '';
     public string $ga4MeasurementSecret = '';
+
+    public static $mailchimpApiKey = '';
+    public static $mailchimpListId = '';
 }
