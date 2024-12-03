@@ -26,7 +26,7 @@ class MailchimpService
         $this->mailChimpClient = new MailChimp($settings->mailchimpApiKey);
     }
 
-    public function subscribe(string $email, string $listId, $data = [])
+    public function subscribe(string $email, string $listId = null, $data = [])
     {
         if (!$email) {
             return ['success' => false, 'msg' => 'Email can\'t be empty'];
@@ -53,7 +53,7 @@ class MailchimpService
 
         try {
             $result = $this->mailChimpClient->post(
-                method: "lists/" . $this->listId . "/members",
+                method: "lists/" . ($listId ?? $this->listId) . "/members",
                 args: $dataMC
             );
             if (in_array($result['status'], ['subscribed', 'pending'])) {

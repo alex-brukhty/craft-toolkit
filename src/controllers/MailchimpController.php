@@ -14,7 +14,7 @@ class MailchimpController extends Controller
         $this->requirePostRequest();
 
         $email = $this->request->getRequiredBodyParam('email');
-        $listId = $this->request->getRequiredBodyParam('listId');
+        $listId = $this->request->getBodyParam('listId');
         $tags = $this->request->getBodyParam('tags');
         $name = $this->request->getBodyParam('name');
         $data = [];
