@@ -13,6 +13,9 @@ class MailchimpService
     private MailChimp $mailChimpClient;
     private string $listId;
 
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
         $settings = Toolkit::getInstance()->getSettings();

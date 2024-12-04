@@ -27,8 +27,7 @@ class MailchimpController extends Controller
             $data['name'] = $name;
         }
 
-        $mailchimpService = Toolkit::getInstance()->mailchimpService;
-        $result = $mailchimpService->subscribe($email, $listId, $data);
+        $result = Toolkit::getInstance()->mailchimpService->subscribe($email, $listId, $data);
 
         return $this->asJson($result);
     }
