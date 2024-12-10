@@ -51,11 +51,11 @@ class ImageTransformService
             function(Event $event) {
                 /* @var $asset Asset */
                 $asset = $event->sender;
-
+                $forced = in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE]);
                 $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
 
                 if (
-                    $asset->transformUrls
+                    $asset->transformUrls && !$forced
                     || !empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes)
                     || in_array(
                         strtolower($asset->extension),
@@ -65,7 +65,10 @@ class ImageTransformService
                     return;
                 }
 
-                Queue::push(new TransformImageJob(['assetId' => $event->sender->id]));
+                Queue::push(new TransformImageJob([
+                    'assetId' => $event->sender->id,
+                    'forced' => $forced,
+                ]));
             }
         );
 
