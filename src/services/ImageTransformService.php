@@ -49,10 +49,16 @@ class ImageTransformService
             Asset::class,
             Asset::EVENT_AFTER_SAVE,
             function(Event $event) {
+                /* @var $asset Asset */
+                $asset = $event->sender;
+
+                $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
+
                 if (
-                    $event->sender->transformUrls
+                    $asset->transformUrls
+                    || !empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes)
                     || in_array(
-                        strtolower($event->sender->extension),
+                        strtolower($asset->extension),
                         ['svg', 'gif', 'webp', 'avif']
                     )
                 ) {

@@ -16,6 +16,7 @@ class Settings extends Model
     public string $cacheBasePath = '@webroot/static';
     public bool $imageTransformEnabled = false;
     public string $imageTransformApiUrl = 'https://wsrv.nl/';
+    public array $imageTransformVolumes = [];
 
     public array $warmSiteIds = [];
 
