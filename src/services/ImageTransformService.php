@@ -55,7 +55,8 @@ class ImageTransformService
                 $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
 
                 if (
-                    $asset->transformUrls && !$forced
+                    !self::isEnabled()
+                    || $asset->transformUrls && !$forced
                     || !empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes)
                     || in_array(
                         strtolower($asset->extension),
@@ -129,11 +130,16 @@ class ImageTransformService
      */
     public static function transformImage(string $assetId, $forced = false): void
     {
+        if (!self::isEnabled()) {
+            return;
+        }
+
         $asset = Asset::find()->id($assetId)->one();
 
         if (!$asset) {
             return;
         }
+
         if ($asset->transformUrls && !$forced) {
             return;
         }
