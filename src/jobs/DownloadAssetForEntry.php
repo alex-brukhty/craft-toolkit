@@ -10,6 +10,7 @@ use craft\errors\AssetException;
 use craft\errors\ElementNotFoundException;
 use craft\errors\FsException;
 use craft\errors\FsObjectExistsException;
+use craft\helpers\Assets as AssetsHelper;
 use craft\queue\BaseJob;
 use Throwable;
 use yii\base\Exception;
@@ -41,7 +42,8 @@ class DownloadAssetForEntry extends BaseJob
      */
     function execute($queue): void
     {
-        $existingAsset = Asset::find()->title($this->title)->siteId($this->siteId)->one();
+        $filename = AssetsHelper::prepareAssetName($this->title);
+        $existingAsset = Asset::find()->filename($filename.'*')->siteId($this->siteId)->one();
         $asset = $existingAsset ?? FileHelper::createAssetFromUrl($this->url, $this->title, $this->folderName);
         if ($asset) {
             $entry = Entry::find()->id($this->entryId)->siteId($this->siteId)->one();
