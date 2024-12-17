@@ -55,7 +55,7 @@ class RunController extends Controller
      */
     public function actionTransformImages($forced = false): void
     {
-        $assets = Asset::find()->transformUrls(!$forced ? ':notempty:' : null)->all();
+        $assets = Asset::find()->transformUrls(!$forced ? ':empty:' : null)->all();
         $counter = 0;
 
         $filtered = array_filter($assets, fn ($asset) => !in_array(
