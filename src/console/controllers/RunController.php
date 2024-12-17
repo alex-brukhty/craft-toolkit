@@ -2,6 +2,7 @@
 
 namespace alexbrukhty\crafttoolkit\console\controllers;
 
+use alexbrukhty\crafttoolkit\Toolkit;
 use Craft;
 use craft\elements\Asset;
 use craft\elements\Entry;
@@ -55,7 +56,12 @@ class RunController extends Controller
      */
     public function actionTransformImages($forced = false): void
     {
-        $assets = Asset::find()->transformUrls(!$forced ? ':empty:' : null)->all();
+        $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
+        $assets = Asset::find()
+            ->volumeId($allowedVolumes ?? null)
+            ->transformUrls(!$forced ? ':empty:' : null)
+            ->all();
+
         $counter = 0;
 
         $filtered = array_filter($assets, fn ($asset) => !in_array(
