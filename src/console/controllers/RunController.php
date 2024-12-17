@@ -53,9 +53,9 @@ class RunController extends Controller
      * @throws ErrorException
      * @throws Exception
      */
-    public function actionTransformImages(): void
+    public function actionTransformImages($forced = false): void
     {
-        $assets = Asset::find()->all();
+        $assets = Asset::find()->transformUrls(!$forced ? ':notempty:' : null)->all();
         $counter = 0;
 
         $filtered = array_filter($assets, fn ($asset) => !in_array(
@@ -69,7 +69,7 @@ class RunController extends Controller
             Console::startProgress(0, count($filtered), '', 0.8);
 
             foreach ($filtered as $asset) {
-                ImageTransformService::transformImage($asset->id, true);
+                ImageTransformService::transformImage($asset->id, $forced);
                 $counter = $counter + 1;
                 Console::updateProgress($counter, count($filtered));
             }
