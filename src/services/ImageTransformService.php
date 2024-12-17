@@ -217,7 +217,7 @@ class ImageTransformService
      */
     public static function getSrcset(Asset $asset): string
     {
-        $transformsString = $asset->getFieldValue('transformUrls');
+        $transformsString = isset($asset->transformUrls) ? $asset->getFieldValue('transformUrls') : null;
         if (!$transformsString) {
             return  '';
         }
@@ -232,7 +232,7 @@ class ImageTransformService
      */
     public static function getSrc(Asset $asset, bool $last = false): string
     {
-        $transformsString = $asset->getFieldValue('transformUrls');
+        $transformsString = isset($asset->transformUrls) ? $asset->getFieldValue('transformUrls') : null;
         if (!$transformsString) {
             return $asset->url;
         }
