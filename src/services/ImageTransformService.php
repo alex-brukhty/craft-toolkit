@@ -221,7 +221,7 @@ class ImageTransformService
         if (!$transformsString) {
             return  '';
         }
-        $transforms = json_decode($transformsString);
+        $transforms = (array)json_decode($transformsString);
         return implode(', ', array_map(function ($tr) {
             return $tr->uri." ".$tr->width."w";
         }, $transforms));
@@ -237,7 +237,7 @@ class ImageTransformService
             return $asset->url;
         }
 
-        $transforms = json_decode($transformsString);
+        $transforms = (array)json_decode($transformsString);
         if (count($transforms) === 0) {
             return $asset->url;
         }
