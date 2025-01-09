@@ -25,7 +25,7 @@ use yii\log\Logger;
 class ImageTransformService
 {
     public const TRANSFORMED_IMAGES_PATH = '@webroot/media_optimised';
-    public const SCENARIO_SKIP_TRANSFORM = 'skip-transform';
+    public const SKIP_TRANSFORM = 'skipTransform';
 
     public static function isEnabled(): bool
     {
@@ -70,7 +70,7 @@ class ImageTransformService
                 if (
                     !self::isEnabled()
                     || (!!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]')
-                    || ($asset->getScenario() === self::SCENARIO_SKIP_TRANSFORM)
+                    || (isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])
                     || (!empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes))
                     || in_array(
                         strtolower($asset->extension),
@@ -153,7 +153,7 @@ class ImageTransformService
             return;
         }
 
-        if ($asset->getScenario() === self::SCENARIO_SKIP_TRANSFORM) {
+        if ((isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])) {
             return;
         }
 
@@ -181,7 +181,7 @@ class ImageTransformService
         $parsed = array_filter($parsed, fn ($tr) => $tr['uri'] !== '/');
         if (count($parsed) > 0) {
             $asset->setFieldValue('transformUrls', json_encode($parsed));
-            $asset->setScenario(self::SCENARIO_SKIP_TRANSFORM);
+            $asset->setAttributes([self::SKIP_TRANSFORM => true], false);
             Craft::$app->elements->saveElement($asset);
         }
     }
@@ -193,7 +193,7 @@ class ImageTransformService
     public static function deleteTransformedImage(Asset $asset, $skipSave = false): void
     {
         $asset->transformUrls = '';
-        $asset->setScenario(self::SCENARIO_SKIP_TRANSFORM);
+        $asset->setAttributes([self::SKIP_TRANSFORM => true], false);
         if (!$skipSave) {
             Craft::$app->elements->saveElement($asset);
         }
