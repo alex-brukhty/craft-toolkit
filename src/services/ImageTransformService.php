@@ -25,6 +25,7 @@ use yii\log\Logger;
 class ImageTransformService
 {
     public const TRANSFORMED_IMAGES_PATH = '@webroot/media_optimised';
+    public const SCENARIO_SKIP_TRANSFORM = 'skip-transform';
 
     public static function isEnabled(): bool
     {
@@ -53,7 +54,7 @@ class ImageTransformService
 
                 if (in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])) {
                     $asset->transformUrls = '';
-                    self::deleteTransformedImage($asset);
+                    self::deleteTransformedImage($asset, true);
                 }
             }
         );
@@ -69,6 +70,7 @@ class ImageTransformService
                 if (
                     !self::isEnabled()
                     || (!!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]')
+                    || ($asset->getScenario() === self::SCENARIO_SKIP_TRANSFORM)
                     || (!empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes))
                     || in_array(
                         strtolower($asset->extension),
@@ -90,7 +92,7 @@ class ImageTransformService
             function(Event $event) {
                 /** @var Asset $asset */
                 $asset = $event->sender;
-                ImageTransformService::deleteTransformedImage($asset);
+                ImageTransformService::deleteTransformedImage($asset, true);
             }
         );
     }
@@ -151,6 +153,10 @@ class ImageTransformService
             return;
         }
 
+        if ($asset->getScenario() === self::SCENARIO_SKIP_TRANSFORM) {
+            return;
+        }
+
         if (!$forced && !!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]') {
             return;
         }
@@ -175,6 +181,7 @@ class ImageTransformService
         $parsed = array_filter($parsed, fn ($tr) => $tr['uri'] !== '/');
         if (count($parsed) > 0) {
             $asset->setFieldValue('transformUrls', json_encode($parsed));
+            $asset->setScenario(self::SCENARIO_SKIP_TRANSFORM);
             Craft::$app->elements->saveElement($asset);
         }
     }
@@ -183,8 +190,14 @@ class ImageTransformService
      * @throws Throwable
      * @throws ErrorException
      */
-    public static function deleteTransformedImage(Asset $asset): void
+    public static function deleteTransformedImage(Asset $asset, $skipSave = false): void
     {
+        $asset->transformUrls = '';
+        $asset->setScenario(self::SCENARIO_SKIP_TRANSFORM);
+        if (!$skipSave) {
+            Craft::$app->elements->saveElement($asset);
+        }
+
         CraftFileHelper::removeDirectory(self::getTransformFolder($asset, true));
     }
 
