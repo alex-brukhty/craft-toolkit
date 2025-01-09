@@ -46,17 +46,29 @@ class ImageTransformService
     public static function registerEvents(): void
     {
         Event::on(
+            Asset::class, Asset::EVENT_BEFORE_SAVE,
+            function(Event $event) {
+                /* @var $asset Asset */
+                $asset = $event->sender;
+
+                if (in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])) {
+                    $asset->transformUrls = '';
+                    self::deleteTransformedImage($asset);
+                }
+            }
+        );
+
+        Event::on(
             Asset::class,
             Asset::EVENT_AFTER_SAVE,
             function(Event $event) {
                 /* @var $asset Asset */
                 $asset = $event->sender;
-                $forced = in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE]);
                 $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
 
                 if (
                     !self::isEnabled()
-                    || ($asset->transformUrls !== '' && !$forced && trim($asset->transformUrls) !== '[]')
+                    || (!!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]')
                     || (!empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes))
                     || in_array(
                         strtolower($asset->extension),
@@ -68,7 +80,6 @@ class ImageTransformService
 
                 Queue::push(new TransformImageJob([
                     'assetId' => $event->sender->id,
-                    'forced' => $forced,
                 ]));
             }
         );
@@ -140,7 +151,7 @@ class ImageTransformService
             return;
         }
 
-        if ($asset->transformUrls !== '' && !$forced && trim($asset->transformUrls) !== '[]') {
+        if (!$forced && !!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]') {
             return;
         }
 
@@ -162,9 +173,10 @@ class ImageTransformService
         }
 
         $parsed = array_filter($parsed, fn ($tr) => $tr['uri'] !== '/');
-
-        $asset->setFieldValue('transformUrls', json_encode($parsed));
-        Craft::$app->elements->saveElement($asset);
+        if (count($parsed) > 0) {
+            $asset->setFieldValue('transformUrls', json_encode($parsed));
+            Craft::$app->elements->saveElement($asset);
+        }
     }
 
     /**
