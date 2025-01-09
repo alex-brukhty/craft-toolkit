@@ -56,8 +56,8 @@ class ImageTransformService
 
                 if (
                     !self::isEnabled()
-                    || $asset->transformUrls && !$forced
-                    || !empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes)
+                    || ($asset->transformUrls !== '' && !$forced && trim($asset->transformUrls) !== '[]')
+                    || (!empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes))
                     || in_array(
                         strtolower($asset->extension),
                         ['svg', 'gif', 'webp', 'avif']
@@ -140,7 +140,7 @@ class ImageTransformService
             return;
         }
 
-        if ($asset->transformUrls && !$forced) {
+        if ($asset->transformUrls !== '' && !$forced && trim($asset->transformUrls) !== '[]') {
             return;
         }
 
