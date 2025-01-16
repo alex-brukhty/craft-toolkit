@@ -262,12 +262,12 @@ class ImageTransformService
             return $asset->url;
         }
 
-        $transforms = (array)json_decode($transformsString);
+        $transforms = (array)json_decode($transformsString) ?? array();
         if (count($transforms) === 0) {
             return $asset->url;
         }
 
-        return $last ? $transforms[array_key_last($transforms)]->uri : $transforms[0]->uri;
+        return $last ? ($transforms[array_key_last($transforms)]->uri ?? '') : ($transforms[0]->uri ?? '');
     }
 
     public static function placeholderSVG(): ?string
