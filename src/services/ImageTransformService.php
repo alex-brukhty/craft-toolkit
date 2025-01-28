@@ -111,13 +111,20 @@ class ImageTransformService
     {
         $domain = self::getWebsiteDomain();
         $assetUrl = $domain.UrlHelper::rootRelativeUrl($asset->url);
-
-        $url = UrlHelper::url(self::getApiUrl(), [
+        $isGrayscale = $asset->grayscale ?? false;
+        $params = [
             'url' => $assetUrl,
             'w' => $transform->width,
             'q' => $transform->quality,
             'output' => $transform->format,
-        ]);
+        ];
+
+        if ($isGrayscale) {
+            $params['filt'] = 'greyscale';
+            $params['con'] = '-20';
+        }
+
+        $url = UrlHelper::url(self::getApiUrl(), $params);
 
         $save = self::getTransformUri($asset, $transform, true);
 
