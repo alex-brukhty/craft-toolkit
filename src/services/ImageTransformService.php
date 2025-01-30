@@ -239,8 +239,8 @@ class ImageTransformService
      */
     public static function getTransformUri(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
-        $withoutExt = preg_replace('/\.\w+$/', '', $asset->filename);
-        $withoutExt = preg_replace('/(%40|@)/', '_', $withoutExt);
+        $filename = preg_replace('/(%40|@)/', '_', $asset->filename);
+        $withoutExt = preg_replace('/\.\w+$/', '', $filename);
         return self::getTransformFolderFull($asset, $transform, $asFile).'/'.$withoutExt.'.'.$transform->format;
     }
 
