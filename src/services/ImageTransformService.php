@@ -216,13 +216,14 @@ class ImageTransformService
         $uri = UrlHelper::rootRelativeUrl($asset->url);
         $rootUrl = $asset->getVolume()->getFs()->getRootUrl();
         $uriWithoutMedia = ltrim($uri, $rootUrl);
+        $replaced = preg_replace('/(@|%40)/', '_', $uriWithoutMedia);
 
         if ($asFile) {
             $root = App::parseEnv(self::TRANSFORMED_IMAGES_PATH);
-            return CraftFileHelper::normalizePath($root . DIRECTORY_SEPARATOR . $uriWithoutMedia);
+            return CraftFileHelper::normalizePath($root . DIRECTORY_SEPARATOR . $replaced);
         } else {
             $baseFolder = ltrim(self::TRANSFORMED_IMAGES_PATH, '@webroot/');
-            return CraftFileHelper::normalizePath($baseFolder . DIRECTORY_SEPARATOR . $uriWithoutMedia);
+            return CraftFileHelper::normalizePath($baseFolder . DIRECTORY_SEPARATOR . $replaced);
         }
     }
 
@@ -239,7 +240,7 @@ class ImageTransformService
      */
     public static function getTransformUri(Asset $asset, ImageTransformModel $transform, $asFile = false): string
     {
-        $filename = str_replace('@', '_', $asset->filename);
+        $filename = preg_replace('/(@|%40)/', '_', $asset->filename);
         $withoutExt = preg_replace('/\.\w+$/', '', $filename);
         return self::getTransformFolderFull($asset, $transform, $asFile).'/'.$withoutExt.'.'.$transform->format;
     }
