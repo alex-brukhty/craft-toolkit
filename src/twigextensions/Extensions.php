@@ -177,6 +177,7 @@ class Extensions extends AbstractExtension
     public function imageMarkup(string $src, array $options): string
     {
         $srcset    = $options['srcset'] ?? null;
+        $alt       = $options['alt'] ?? null;
         $class     = $options['class'] ?? null;
         $width     = $options['width'] ?? null;
         $height    = $options['height'] ?? null;
@@ -234,6 +235,7 @@ class Extensions extends AbstractExtension
         $width = $options['width'] ?? ($asset->assetWidth ?? ($asset->width ?? 16));
         $height = $options['height'] ?? ($asset->assetHeight ?? ($asset->height ?? 9));
         $lazy = $options['lazy'] ?? true;
+        $alt = $options['alt'] ?? null;
         $autoplay = $options['autoplay'] ?? true;
         $class = $options['class'] ?? '';
         $grayscale = $options['grayscale'] ?? false;
@@ -321,7 +323,7 @@ class Extensions extends AbstractExtension
         return $this->imageMarkup($src, [
             'srcset' => $srcset,
             'class' => $class,
-            'alt' => $alt ?? (strip_tags($asset->caption ?? '') ?? $asset->title),
+            'alt' => $alt ?? ($asset->alt ?? $asset->title),
             'width' => $width,
             'height' => $height,
             'lazy' => $lazy,
