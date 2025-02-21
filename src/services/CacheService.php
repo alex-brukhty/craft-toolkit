@@ -4,13 +4,13 @@ namespace alexbrukhty\crafttoolkit\services;
 
 use alexbrukhty\crafttoolkit\Toolkit;
 use alexbrukhty\crafttoolkit\utilities\CacheUtility;
+use alexbrukhty\crafttoolkit\models\Settings;
 use Craft;
 use craft\base\Element;
 use craft\elements\Entry;
 use craft\elements\Asset;
 use craft\errors\SiteNotFoundException;
 use craft\events\ElementEvent;
-use craft\events\MultiElementActionEvent;
 use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\helpers\App;
@@ -19,6 +19,7 @@ use craft\services\Elements;
 use craft\services\Utilities;
 use craft\utilities\ClearCaches;
 use craft\web\Response;
+use GuzzleHttp\Promise\Promise;
 use Ryssbowh\PhpCacheWarmer\Warmer;
 use vipnytt\SitemapParser;
 use vipnytt\SitemapParser\Exceptions\SitemapParserException;
@@ -30,10 +31,9 @@ use yii\web\Response as ResponseAlias;
 
 class CacheService
 {
-    private int $countCachedFiles = 0;
     private bool $enabled;
-    private string $cacheBasePath = '';
-    private string $siteUrl = '';
+    private string $cacheBasePath;
+    private string $siteUrl;
 
     public function __construct() {
         $this->enabled = $this->getSettings()->cacheEnabled ?? false;
@@ -42,7 +42,7 @@ class CacheService
         $this->cacheBasePath = FileHelper::normalizePath(App::parseEnv($cacheBasePath));
     }
 
-    public function getSettings()
+    public function getSettings(): Settings
     {
         return Toolkit::getInstance()->getSettings();
     }
@@ -129,7 +129,7 @@ class CacheService
 
             foreach ($events as $event) {
                 Event::on(Elements::class, $event,
-                    function(ElementEvent|MultiElementActionEvent $event) {
+                    function(ElementEvent $event) {
                         /** @var Element $element */
                          $element = $event->element;
                          if (
@@ -148,7 +148,8 @@ class CacheService
         }
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
-            Event::on(Utilities::class, Utilities::EVENT_REGISTER_UTILITIES,
+            $name = Craft::$app->getVersion() >= 5 ? 'registerUtilities' : 'registerUtilityTypes';
+            Event::on(Utilities::class, $name,
                 function(RegisterComponentTypesEvent $event) {
                     $event->types[] = CacheUtility::class;
                 }
@@ -268,7 +269,7 @@ class CacheService
         return $data;
     }
 
-    public function warmUrls($urls, $concurrent = 10)
+    public function warmUrls($urls, $concurrent = 10): Promise
     {
         $warmer = new Warmer($concurrent);
         $warmer->addUrls($urls);
