@@ -17,6 +17,7 @@ class Settings extends Model
     public bool $imageTransformEnabled = false;
     public string $imageTransformApiUrl = 'https://wsrv.nl/';
     public array $imageTransformVolumes = [];
+    public array $imageTransformFieldsOverride = [];
 
     public array $warmSiteIds = [];
 

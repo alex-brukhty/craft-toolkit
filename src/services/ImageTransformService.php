@@ -37,6 +37,23 @@ class ImageTransformService
         return Toolkit::getInstance()->getSettings()->imageTransformApiUrl;
     }
 
+    public static function overrideFields($fieldHandle): string
+    {
+        $imageTransformFieldsOverride = Toolkit::getInstance()->getSettings()->imageTransformFieldsOverride ?? [];
+
+        if (isset($imageTransformFieldsOverride[$fieldHandle])) {
+            return $imageTransformFieldsOverride[$fieldHandle];
+        }
+
+        return $fieldHandle;
+    }
+
+    public static function getTransformFieldHandle($asset)
+    {
+        $handle = self::overrideFields('transformUrls');
+        return $asset[$handle] ? $handle : null;
+    }
+
     public static function getWebsiteDomain(): string
     {
         return App::devMode()
@@ -53,7 +70,10 @@ class ImageTransformService
                 $asset = $event->sender;
 
                 if (in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])) {
-                    $asset->transformUrls = '';
+                    $transformFieldHandle = self::getTransformFieldHandle($asset);
+                    if ($transformFieldHandle) {
+                        $asset->setFieldValue($transformFieldHandle, '');
+                    }
                     self::deleteTransformedImage($asset, true);
                 }
             }
@@ -66,10 +86,11 @@ class ImageTransformService
                 /* @var $asset Asset */
                 $asset = $event->sender;
                 $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
+                $transformFieldHandle = self::getTransformFieldHandle($asset);
 
                 if (
                     !self::isEnabled()
-                    || (!!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]')
+                    || ($transformFieldHandle && trim($asset[$transformFieldHandle]) !== '' && trim($asset[$transformFieldHandle]) !== '[]')
                     || (isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])
                     || (!empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes))
                     || in_array(
@@ -164,7 +185,8 @@ class ImageTransformService
             return;
         }
 
-        if (!$forced && !!$asset->transformUrls && trim($asset->transformUrls) !== '' && trim($asset->transformUrls) !== '[]') {
+        $transformFieldHandle = self::getTransformFieldHandle($asset);
+        if (!$forced && $transformFieldHandle && trim($asset[$transformFieldHandle]) !== '' && trim($asset[$transformFieldHandle]) !== '[]') {
             return;
         }
 
@@ -187,9 +209,12 @@ class ImageTransformService
 
         $parsed = array_filter($parsed, fn ($tr) => $tr['uri'] !== '/');
         if (count($parsed) > 0) {
-            $asset->setFieldValue('transformUrls', json_encode($parsed));
-            $asset->setAttributes([self::SKIP_TRANSFORM => true], false);
-            Craft::$app->elements->saveElement($asset);
+            $transformFieldHandle = self::getTransformFieldHandle($asset);
+            if ($transformFieldHandle) {
+                $asset->setFieldValue($transformFieldHandle, json_encode($parsed));
+                $asset->setAttributes([self::SKIP_TRANSFORM => true], false);
+                Craft::$app->elements->saveElement($asset);
+            }
         }
     }
 
@@ -199,7 +224,10 @@ class ImageTransformService
      */
     public static function deleteTransformedImage(Asset $asset, $skipSave = false): void
     {
-        $asset->transformUrls = '';
+        $transformFieldHandle = self::getTransformFieldHandle($asset);
+        if ($transformFieldHandle) {
+            $asset->setFieldValue($transformFieldHandle, '');
+        }
         $asset->setAttributes([self::SKIP_TRANSFORM => true], false);
         if (!$skipSave) {
             Craft::$app->elements->saveElement($asset);
@@ -251,7 +279,8 @@ class ImageTransformService
      */
     public static function getSrcset(Asset $asset): string
     {
-        $transformsString = isset($asset->transformUrls) ? $asset->getFieldValue('transformUrls') : null;
+        $transformFieldHandle = self::getTransformFieldHandle($asset);
+        $transformsString = $transformFieldHandle ? $asset->getFieldValue($transformFieldHandle) : null;
         if (!$transformsString) {
             return  '';
         }
@@ -266,7 +295,8 @@ class ImageTransformService
      */
     public static function getSrc(Asset $asset, bool $last = false): string
     {
-        $transformsString = isset($asset->transformUrls) ? $asset->getFieldValue('transformUrls') : null;
+        $transformFieldHandle = self::getTransformFieldHandle($asset);
+        $transformsString = $transformFieldHandle ? $asset->getFieldValue($transformFieldHandle) : null;
         if (!$transformsString) {
             return $asset->url;
         }

@@ -5,6 +5,7 @@ namespace alexbrukhty\crafttoolkit\twigextensions;
 use Craft;
 use craft\elements\Asset;
 use craft\errors\InvalidFieldException;
+use craft\errors\SiteNotFoundException;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use craft\helpers\ArrayHelper;
@@ -13,6 +14,8 @@ use Throwable;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
+use yii\base\Exception;
+use yii\base\InvalidConfigException;
 
 /**
  * @author    Alex
@@ -22,8 +25,6 @@ use Twig\TwigFunction;
 
 class Extensions extends AbstractExtension
 {
-
-    public $formHandels = [];
 
     // Public Methods
     // =========================================================================
@@ -71,21 +72,22 @@ class Extensions extends AbstractExtension
         ];
     }
 
-    public function getAssetRatio($asset)
+    public function getAssetRatio($asset): string
     {
         if (!$asset) return '';
 
-        $width = $asset->assetWidth ?? $asset->width ?? 1920;
-        $height = $asset->assetHeight ?? $asset->height ?? 1080;
+        $width = $asset[ImageTransformService::overrideFields('assetWidth')] ?? $asset->width ?? 1920;
+        $height = $asset[ImageTransformService::overrideFields('assetHeight')] ?? $asset->height ?? 1080;
 
         return round(($height / $width) * 100, 1) . '%';
     }
 
-    public function urlHelper() {
+    public function urlHelper(): UrlHelper
+    {
         return new UrlHelper();
     }
 
-    public function getIconName(string $url)
+    public function getIconName(string $url): string
     {
         $available = [
             'behance',
@@ -104,15 +106,15 @@ class Extensions extends AbstractExtension
         preg_match('/^(?:https?:\/\/)?(?:www\.)?([^:\/\n.]+)/', $url, $matches);
         $textPart = $matches[1];
         $availableAlt = $textPart === 'x' ? 'x-twitter' : (
-            $textPart === 'twitter'
-                ? 'x-twitter'
-                : $textPart
+        $textPart === 'twitter'
+            ? 'x-twitter'
+            : $textPart
         );
 
         return $available[array_search($availableAlt, $available)].'.svg';
     }
 
-    public function classHelper(Array $array)
+    public function classHelper(Array $array): string
     {
         return Html::renderTagAttributes(['class' => $array]);
     }
@@ -124,19 +126,19 @@ class Extensions extends AbstractExtension
         });
     }
 
-    public function styleHelper(Array $obg)
+    public function styleHelper(Array $obg): string
     {
         return Html::renderTagAttributes(['style' => $this->styleFiltered($obg)]);
     }
 
-    public function fixSrcsetSpaces($string)
+    public function fixSrcsetSpaces($string): string
     {
         $parts = explode(', ', $string);
         $fixedParts = [];
         foreach ($parts as $part) {
             $_part = explode('.', $part);
             $_part[0] = str_replace(' ', '%20', $_part[0]);
-                $fixedParts[] = implode('.', $_part);
+            $fixedParts[] = implode('.', $_part);
         }
         return implode(', ', $fixedParts);
     }
@@ -169,7 +171,7 @@ class Extensions extends AbstractExtension
     /**
      * @throws InvalidFieldException
      */
-    public function getSrc(Asset|null $asset, bool $last = false)
+    public function getSrc(Asset|null $asset, bool $last = false): string
     {
         return $asset ? ImageTransformService::getSrc($asset, $last) : '';
     }
@@ -232,8 +234,8 @@ class Extensions extends AbstractExtension
     {
         if (!$asset) return '';
 
-        $width = $options['width'] ?? ($asset->assetWidth ?? ($asset->width ?? 16));
-        $height = $options['height'] ?? ($asset->assetHeight ?? ($asset->height ?? 9));
+        $width = $options['width'] ?? ($asset[ImageTransformService::overrideFields('assetWidth')] ?? ($asset->width ?? 16));
+        $height = $options['height'] ?? ($asset[ImageTransformService::overrideFields('assetHeight')] ?? ($asset->height ?? 9));
         $lazy = $options['lazy'] ?? true;
         $alt = $options['alt'] ?? null;
         $autoplay = $options['autoplay'] ?? true;
@@ -271,7 +273,7 @@ class Extensions extends AbstractExtension
                         'playsinline' => '',
                         'loop' => '',
                         'autoplay' => $autoplay,
-                        'poster' => $asset->videoThumbnail?->one()->url ?? null
+                        'poster' => $asset[ImageTransformService::overrideFields('videoThumbnail')]?->one()->url ?? null
                     ]
                 ).$ratioSvg,
                 [
@@ -342,14 +344,14 @@ class Extensions extends AbstractExtension
      */
     public function media(Asset|null $asset, $options = [], $transformName = 'fullWidth'): string
     {
-        $mobileMedia = $asset->mobileImage[0] ?? ($asset->mobileVideo[0] ?? null);
+        $mobileMedia = $asset[ImageTransformService::overrideFields('mobileImage')][0] ?? ($asset[ImageTransformService::overrideFields('mobileVideo')][0] ?? null);
         return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => !!$mobileMedia], $transformName) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $transformName);
     }
 
-    public function player(Asset|null $asset)
+    public function player(Asset|null $asset): string
     {
-        $poster = $asset->isExternalVideo ? $asset : $asset->videoThumbnail->eagerly()->one();
-        $url = $asset->externalVideoUrl;
+        $poster = $asset[ImageTransformService::overrideFields('isExternalVideo')] ? $asset : $asset[ImageTransformService::overrideFields('videoThumbnail')]->eagerly()->one();
+        $url = $asset[ImageTransformService::overrideFields('externalVideoUrl')];
 
         return Html::tag(
             'b-player',
@@ -378,11 +380,18 @@ class Extensions extends AbstractExtension
         ' . $secondHalf;
     }
 
-    public function isExternalUrl($url)
+    /**
+     * @throws SiteNotFoundException
+     */
+    public function isExternalUrl($url): bool
     {
         return str_contains($url, '//') && !str_contains($url, UrlHelper::siteHost());
     }
 
+    /**
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
     public function htmxValsObj(array $vals): array
     {
         $request = Craft::$app->getRequest();
@@ -395,6 +404,10 @@ class Extensions extends AbstractExtension
         return $vals;
     }
 
+    /**
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
     public function htmxVals(array $vals): string
     {
         return json_encode($this->htmxValsObj($vals));
