@@ -60,27 +60,23 @@ class RunController extends Controller
         $assets = Asset::find()
             ->volumeId($allowedVolumes ?? null)
             ->transformUrls(!$forced ? ':empty:' : null)
+            ->filename(['*.svg', '*.gif', '*.webp', '*.avif'])
             ->all();
 
         $counter = 0;
 
-        $filtered = array_filter($assets, fn ($asset) => !in_array(
-            strtolower($asset->extension),
-            ['svg', 'gif', 'webp', 'avif']
-        ));
-
-        if (count($filtered) > 0) {
+        if (count($assets) > 0) {
             $this->stdout('Transforming assets' . PHP_EOL, BaseConsole::FG_YELLOW);
 
-            Console::startProgress(0, count($filtered), '', 0.8);
+            Console::startProgress(0, count($assets), '', 0.8);
 
-            foreach ($filtered as $asset) {
+            foreach ($assets as $asset) {
                 ImageTransformService::transformImage($asset->id, $forced);
                 $counter = $counter + 1;
-                Console::updateProgress($counter, count($filtered));
+                Console::updateProgress($counter, count($assets));
             }
 
-            if ($counter === count($filtered)) {
+            if ($counter === count($assets)) {
                 Console::endProgress();
             }
         } else {
