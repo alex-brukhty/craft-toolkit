@@ -148,7 +148,7 @@ class CacheService
         }
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
-            Event::on(Utilities::class, Utilities::EVENT_REGISTER_UTILITIES,
+            Event::on(Utilities::class, Utilities::EVENT_REGISTER_UTILITY_TYPES,
                 function(RegisterComponentTypesEvent $event) {
                     $event->types[] = CacheUtility::class;
                 }
