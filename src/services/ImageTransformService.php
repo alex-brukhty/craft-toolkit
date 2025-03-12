@@ -51,7 +51,7 @@ class ImageTransformService
     public static function getTransformFieldHandle($asset)
     {
         $handle = self::overrideFields('transformUrls');
-        return $asset[$handle] ? $handle : null;
+        return $asset[$handle] ? $handle : 'transformUrls';
     }
 
     public static function getWebsiteDomain(): string
