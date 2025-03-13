@@ -60,7 +60,7 @@ class RunController extends Controller
         $assets = Asset::find()
             ->volumeId($allowedVolumes ?? null)
             ->transformUrls(!$forced ? ':empty:' : null)
-            ->filename(['*.svg', '*.gif', '*.webp', '*.avif'])
+            ->filename(['not', '*.svg', '*.gif', '*.webp', '*.avif'])
             ->all();
 
         $counter = 0;
