@@ -92,7 +92,7 @@ class ImageTransformService
                     !self::isEnabled()
                     || ($transformFieldHandle && trim($asset[$transformFieldHandle]) !== '' && trim($asset[$transformFieldHandle]) !== '[]')
                     || (isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])
-                    || (!empty($allowedVolumes) && !in_array($asset->volumeId, $allowedVolumes))
+                    || (count($allowedVolumes) > 0 && !in_array($asset->volumeId, $allowedVolumes))
                     || in_array(
                         strtolower($asset->extension),
                         ['svg', 'gif', 'webp', 'avif']

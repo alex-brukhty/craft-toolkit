@@ -57,11 +57,17 @@ class RunController extends Controller
     public function actionTransformImages($forced = false): void
     {
         $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
-        $assets = Asset::find()
-            ->volumeId($allowedVolumes ?? null)
-            ->transformUrls(!$forced ? ':empty:' : null)
-            ->filename(['not', '*.svg', '*.gif', '*.webp', '*.avif'])
-            ->all();
+        $assetsQuery = Asset::find()->filename(['not', '*.svg', '*.gif', '*.webp', '*.avif']);
+
+        if (count($allowedVolumes) > 0) {
+            $assetsQuery->volumeId($allowedVolumes);
+        }
+
+        if (!$forced) {
+            $assetsQuery->transformUrls(':empty:');
+        }
+
+        $assets = $assetsQuery->all();
 
         $counter = 0;
 
