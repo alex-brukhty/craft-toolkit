@@ -17,13 +17,18 @@ class MailchimpController extends Controller
         $listId = $this->request->getBodyParam('listId');
         $tags = $this->request->getBodyParam('tags');
         $name = $this->request->getBodyParam('name');
+        $firstName = $this->request->getBodyParam('firstName');
+        $lastName = $this->request->getBodyParam('lastName');
+
         $data = [];
 
         if ($tags) {
             $data['tags'] = $tags;
         }
 
-        if ($name) {
+        if ($firstName && $lastName) {
+            $data['name'] = $firstName . ' ' . $lastName;
+        } else if ($name) {
             $data['name'] = $name;
         }
 
