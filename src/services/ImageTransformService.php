@@ -280,7 +280,7 @@ class ImageTransformService
     public static function getSrcset(Asset $asset): string
     {
         $transformFieldHandle = self::getTransformFieldHandle($asset);
-        $transformsString = $transformFieldHandle ? $asset->getFieldValue($transformFieldHandle) : null;
+        $transformsString = $transformFieldHandle && isset($asset->$transformFieldHandle) ? $asset->getFieldValue($transformFieldHandle) : null;
         if (!$transformsString) {
             return  '';
         }
@@ -296,7 +296,7 @@ class ImageTransformService
     public static function getSrc(Asset $asset, bool $last = false): string
     {
         $transformFieldHandle = self::getTransformFieldHandle($asset);
-        $transformsString = $transformFieldHandle ? $asset->getFieldValue($transformFieldHandle) : null;
+        $transformsString = $transformFieldHandle && isset($asset->$transformFieldHandle) ? $asset->getFieldValue($transformFieldHandle) : null;
         if (!$transformsString) {
             return $asset->url;
         }
