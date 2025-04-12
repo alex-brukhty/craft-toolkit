@@ -8,6 +8,7 @@ use craft\web\Controller;
 class MailchimpController extends Controller
 {
     public $defaultAction = 'subscribe';
+    public array|int|bool $allowAnonymous = ['subscribe'];
 
     public function actionSubscribe()
     {
