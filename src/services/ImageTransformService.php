@@ -8,6 +8,7 @@ use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\InvalidFieldException;
 use craft\helpers\App;
 use craft\helpers\ArrayHelper;
+use craft\helpers\ElementHelper;
 use craft\helpers\Queue;
 use craft\helpers\UrlHelper;
 use craft\models\ImageTransform as ImageTransformModel;
@@ -90,13 +91,12 @@ class ImageTransformService
 
                 if (
                     !self::isEnabled()
+                    || $asset->kind !== 'image'
+                    || ElementHelper::isDraftOrRevision($asset)
+                    || in_array(strtolower($asset->extension), ['svg', 'gif', 'webp', 'avif'])
                     || ($transformFieldHandle && trim($asset[$transformFieldHandle]) !== '' && trim($asset[$transformFieldHandle]) !== '[]')
                     || (isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])
                     || (count($allowedVolumes) > 0 && !in_array($asset->volumeId, $allowedVolumes))
-                    || in_array(
-                        strtolower($asset->extension),
-                        ['svg', 'gif', 'webp', 'avif']
-                    )
                 ) {
                     return;
                 }

@@ -2,12 +2,14 @@
 
 namespace alexbrukhty\crafttoolkit\console\controllers;
 
+use alexbrukhty\crafttoolkit\jobs\TransformImageJob;
 use alexbrukhty\crafttoolkit\Toolkit;
 use Craft;
 use craft\elements\Asset;
 use craft\elements\Entry;
 use craft\errors\ElementNotFoundException;
 use craft\helpers\Console;
+use craft\helpers\Queue;
 use GuzzleHttp\Exception\GuzzleException;
 use alexbrukhty\crafttoolkit\services\ImageTransformService;
 use Throwable;
@@ -57,7 +59,7 @@ class RunController extends Controller
     public function actionTransformImages($forced = false): void
     {
         $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
-        $assetsQuery = Asset::find()->filename(['not', '*.svg', '*.gif', '*.webp', '*.avif']);
+        $assetsQuery = Asset::find()->kind('image')->filename(['not', '*.svg', '*.gif', '*.webp', '*.avif']);
 
         if (count($allowedVolumes) > 0) {
             $assetsQuery->volumeId($allowedVolumes);
@@ -69,21 +71,14 @@ class RunController extends Controller
 
         $assets = $assetsQuery->all();
 
-        $counter = 0;
-
         if (count($assets) > 0) {
-            $this->stdout('Transforming assets' . PHP_EOL, BaseConsole::FG_YELLOW);
-
-            Console::startProgress(0, count($assets), '', 0.8);
+            $this->stdout('Transforming assets: '. count($assets) . PHP_EOL, BaseConsole::FG_YELLOW);
 
             foreach ($assets as $asset) {
-                ImageTransformService::transformImage($asset->id, $forced);
-                $counter = $counter + 1;
-                Console::updateProgress($counter, count($assets));
-            }
-
-            if ($counter === count($assets)) {
-                Console::endProgress();
+                Queue::push(new TransformImageJob([
+                    'assetId' => $asset->id,
+                    'forced' => $forced,
+                ]));
             }
         } else {
             $this->stdout('No Assets to transform' . PHP_EOL, BaseConsole::FG_YELLOW);
