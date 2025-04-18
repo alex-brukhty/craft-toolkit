@@ -15,7 +15,9 @@ use craft\events\ElementEvent;
 use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\helpers\App;
+use craft\helpers\ElementHelper;
 use craft\helpers\FileHelper;
+use craft\helpers\UrlHelper;
 use craft\services\Elements;
 use craft\services\Utilities;
 use craft\utilities\ClearCaches;
@@ -29,6 +31,7 @@ use yii\base\Event;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException;
 use yii\web\Response as ResponseAlias;
+use Illuminate\Support\Collection;
 
 class CacheService
 {
@@ -132,14 +135,15 @@ class CacheService
                 Event::on(Elements::class, $event,
                     function(ElementEvent $event) {
                         /** @var Element $element */
-                         $element = $event->element;
-                         if (
-                             $element::class === Entry::class
-                             || $element::class === 'craft\\commerce\\elements\\Product'
-                             || $element::class === Asset::class
-                         ) {
-                            $this->clearCache($element);
-                         }
+                        $element = $event->element;
+                        if (
+                            !ElementHelper::isDraftOrRevision($element)
+                            && ($element::class === Entry::class
+                                || $element::class === 'craft\\commerce\\elements\\Product'
+                                || $element::class === Asset::class)
+                        ) {
+                            $this->clearCacheByElement($element);
+                        }
                     }
                 );
             }
@@ -200,6 +204,8 @@ class CacheService
     private function cacheFilePath(string $uri): string
     {
         $uriIsFile = str_contains($uri, '.');
+        $uri = str_replace('__home__', '',  $uri);
+        $uri = str_replace($this->siteUrl, '',  $uri);
         $siteHostPath = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
 
         return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $siteHostPath . DIRECTORY_SEPARATOR . ($uriIsFile ? $uri : $uri.'/index.html'));
@@ -218,41 +224,53 @@ class CacheService
         }
     }
 
-    public function clearCache(Element $element): void
+    public function clearCacheByUrls($urs = [])
     {
-        $productsQuery = new ElementQuery('craft\\commerce\\elements\\Product');
+        // $this->writeLog(implode(PHP_EOL, $urs));
+        foreach ($urs as $uri) {
+            $path = $this->cacheFilePath($uri);
+            if ($path) {
+                $this->delete($path);
+            }
+        }
+    }
+
+    public function clearCacheByElement(Element $element): void
+    {
+        $urls = Collection::make();
+        $productElementClass = 'craft\\commerce\\elements\\Product';
+        $productElement = class_exists($productElementClass) ? $productElementClass : null;
         $cacheRelations = $this->getSettings()->cacheRelations;
 
         if (count($cacheRelations) > 0) {
             if ($element::class === Asset::class) {
                 $entries = Entry::find()->relatedTo($element)->collect();
-                $products = $productsQuery->relatedTo($element)->collect();
-                $entries->merge($products);
-                $entries->each(function(Element $entry) {
+                $products = $productElement::find()->relatedTo($element)->collect();
+                foreach ($entries->merge($products)->all() as $entry) {
                     $uri = $entry->getRootOwner()->uri;
-                    $path = $this->cacheFilePath($uri);
-                    if ($path) {
-                        $this->delete($path);
-                    }
-                });
+                    $path = $uri ? $this->cacheFilePath($uri) : null;
+                    $urls->put($entry->id, $path);
+                };
             } else {
                 $entry = $element->getRootOwner();
-                $path = $this->cacheFilePath($entry->uri);
-                if ($path) {
-                    $this->delete($path);
+                $path = $entry->uri ? $this->cacheFilePath($entry->uri) : null;
+                $urls->put($entry->id, $path);
+
+                $handle = $entry->section->handle ?? ($entry->type->handle ?? null);
+                if ($handle && isset($cacheRelations[$handle])) {
+                    $entries = Entry::find()->section($cacheRelations[$handle])->collect();
+                    $products = $productElement::find()->type($cacheRelations[$handle])->collect();
+                    foreach ($entries->merge($products)->all() as $entry) {
+                        $path = $entry->uri ? $this->cacheFilePath($entry->uri) : null;
+                        $urls->put($entry->id, $path);
+                    };
                 }
+            }
 
-
-                if (isset($cacheRelations[$entry->section->handle])) {
-                    $entries = Entry::find()->section($cacheRelations[$entry->section->handle])->collect();
-                    $products = $productsQuery->type($cacheRelations[$entry->section->handle])->collect();
-                    $entries->merge($products);
-                    $entries->each(function($entry) {
-                        $path = $this->cacheFilePath($entry->uri);
-                        if ($path) {
-                            $this->delete($path);
-                        }
-                    });
+            // $this->writeLog(implode(PHP_EOL, $urls->all()));
+            foreach ($urls->all() as $url) {
+                if ($url) {
+                    $this->delete($url);
                 }
             }
         } else {
@@ -314,5 +332,13 @@ class CacheService
         $warmer = new Warmer($concurrent);
         $warmer->addUrls($urls);
         return $warmer->warm();
+    }
+
+    public function writeLog($message)
+    {
+        $folder = FileHelper::normalizePath(App::parseEnv('@webroot/logs'));
+        $timestamp = time();
+        $path = "$folder/cache-$timestamp.txt";
+        FileHelper::writeToFile($path, $message);
     }
 }
