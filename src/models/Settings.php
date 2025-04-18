@@ -12,6 +12,7 @@ class Settings extends Model
     public bool $cacheEnabled = false;
     public array $cacheInclude = [];
     public array $cacheExclude = [];
+    public array $cacheRelations = [];
     public array $excludeSiteIds = [];
     public string $cacheBasePath = '@webroot/static';
     public bool $imageTransformEnabled = false;

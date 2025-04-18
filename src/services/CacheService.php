@@ -7,6 +7,7 @@ use alexbrukhty\crafttoolkit\utilities\CacheUtility;
 use alexbrukhty\crafttoolkit\models\Settings;
 use Craft;
 use craft\base\Element;
+use craft\elements\db\ElementQuery;
 use craft\elements\Entry;
 use craft\elements\Asset;
 use craft\errors\SiteNotFoundException;
@@ -137,10 +138,8 @@ class CacheService
                              || $element::class === 'craft\\commerce\\elements\\Product'
                              || $element::class === Asset::class
                          ) {
-                            // TODO: this is temp
-                            $this->clearAllCache();
+                            $this->clearCache($element);
                          }
-
                     }
                 );
             }
@@ -216,6 +215,48 @@ class CacheService
             FileHelper::writeToFile($path, $content);
         } catch (Exception|ErrorException|InvalidArgumentException $exception) {
             Craft::$app->log->logger->log($exception->getMessage(), 'warning', 'static-cache');
+        }
+    }
+
+    public function clearCache(Element $element): void
+    {
+        $productsQuery = new ElementQuery('craft\\commerce\\elements\\Product');
+        $cacheRelations = $this->getSettings()->cacheRelations;
+
+        if (count($cacheRelations) > 0) {
+            if ($element::class === Asset::class) {
+                $entries = Entry::find()->relatedTo($element)->collect();
+                $products = $productsQuery->relatedTo($element)->collect();
+                $entries->merge($products);
+                $entries->each(function(Element $entry) {
+                    $uri = $entry->getRootOwner()->uri;
+                    $path = $this->cacheFilePath($uri);
+                    if ($path) {
+                        $this->delete($path);
+                    }
+                });
+            } else {
+                $entry = $element->getRootOwner();
+                $path = $this->cacheFilePath($entry->uri);
+                if ($path) {
+                    $this->delete($path);
+                }
+
+
+                if (isset($cacheRelations[$entry->section->handle])) {
+                    $entries = Entry::find()->section($cacheRelations[$entry->section->handle])->collect();
+                    $products = $productsQuery->type($cacheRelations[$entry->section->handle])->collect();
+                    $entries->merge($products);
+                    $entries->each(function($entry) {
+                        $path = $this->cacheFilePath($entry->uri);
+                        if ($path) {
+                            $this->delete($path);
+                        }
+                    });
+                }
+            }
+        } else {
+            $this->clearAllCache();
         }
     }
 
