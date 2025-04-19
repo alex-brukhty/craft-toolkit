@@ -7,11 +7,9 @@ use alexbrukhty\crafttoolkit\utilities\CacheUtility;
 use alexbrukhty\crafttoolkit\models\Settings;
 use Craft;
 use craft\base\Element;
-use craft\elements\db\ElementQuery;
 use craft\elements\Entry;
 use craft\elements\Asset;
 use craft\errors\SiteNotFoundException;
-use craft\events\ElementEvent;
 use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\helpers\App;
@@ -133,7 +131,7 @@ class CacheService
 
             foreach ($events as $event) {
                 Event::on(Elements::class, $event,
-                    function(ElementEvent $event) {
+                    function(mixed $event) {
                         /** @var Element $element */
                         $element = $event->element;
                         if (
@@ -201,8 +199,9 @@ class CacheService
         return false;
     }
 
-    private function cacheFilePath(string $uri): string
+    private function cacheFilePath(string $url): string
     {
+        $uri = UrlHelper::rootRelativeUrl($url);
         $uriIsFile = str_contains($uri, '.');
         $uri = str_replace('__home__', '',  $uri);
         $uri = str_replace($this->siteUrl, '',  $uri);
@@ -224,55 +223,50 @@ class CacheService
         }
     }
 
-    public function clearCacheByUrls($urs = [])
+    public function clearCacheByUrls($urls = []): void
     {
         // $this->writeLog(implode(PHP_EOL, $urs));
-        foreach ($urs as $uri) {
-            $path = $this->cacheFilePath($uri);
+        foreach ($urls as $url) {
+            $path = $this->cacheFilePath($url);
             if ($path) {
                 $this->delete($path);
             }
         }
+
+        Toolkit::getInstance()->cloudflareService->purgeUrls($urls);
     }
 
     public function clearCacheByElement(Element $element): void
     {
         $urls = Collection::make();
         $productElementClass = 'craft\\commerce\\elements\\Product';
+        /* @var Element|null $productElement */
         $productElement = class_exists($productElementClass) ? $productElementClass : null;
         $cacheRelations = $this->getSettings()->cacheRelations;
 
         if (count($cacheRelations) > 0) {
             if ($element::class === Asset::class) {
                 $entries = Entry::find()->relatedTo($element)->collect();
-                $products = $productElement::find()->relatedTo($element)->collect();
+                $products = $productElement ? $productElement::find()->relatedTo($element)->collect() : Collection::make();
                 foreach ($entries->merge($products)->all() as $entry) {
-                    $uri = $entry->getRootOwner()->uri;
-                    $path = $uri ? $this->cacheFilePath($uri) : null;
-                    $urls->put($entry->id, $path);
+                    $url = $entry->getRootOwner()->uri;
+                    $urls->put($entry->id, $url);
                 };
             } else {
                 $entry = $element->getRootOwner();
-                $path = $entry->uri ? $this->cacheFilePath($entry->uri) : null;
-                $urls->put($entry->id, $path);
+                $urls->put($entry->id, $entry->url);
 
                 $handle = $entry->section->handle ?? ($entry->type->handle ?? null);
                 if ($handle && isset($cacheRelations[$handle])) {
                     $entries = Entry::find()->section($cacheRelations[$handle])->collect();
-                    $products = $productElement::find()->type($cacheRelations[$handle])->collect();
+                    $products = $productElement ? $productElement::find()->type($cacheRelations[$handle])->collect() : Collection::make();
                     foreach ($entries->merge($products)->all() as $entry) {
-                        $path = $entry->uri ? $this->cacheFilePath($entry->uri) : null;
-                        $urls->put($entry->id, $path);
+                        $urls->put($entry->id, $entry->url);
                     };
                 }
             }
 
-            // $this->writeLog(implode(PHP_EOL, $urls->all()));
-            foreach ($urls->all() as $url) {
-                if ($url) {
-                    $this->delete($url);
-                }
-            }
+            $this->clearCacheByUrls($urls->all());
         } else {
             $this->clearAllCache();
         }

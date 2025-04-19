@@ -15,24 +15,19 @@ class Settings extends Model
     public array $cacheRelations = [];
     public array $excludeSiteIds = [];
     public string $cacheBasePath = '@webroot/static';
+    public string $cloudflareToken = '';
+    public string $cloudflareZone = '';
+    public bool $cloudflareEnabled = false;
     public bool $imageTransformEnabled = false;
     public string $imageTransformApiUrl = 'https://wsrv.nl/';
     public array $imageTransformVolumes = [];
     public array $imageTransformFieldsOverride = [];
-
     public array $warmSiteIds = [];
-
     public string $sitemapUrl = 'sitemap.xml';
-
-    /**
-     * @var string
-     * for use in dev mode only to make local images available for external API
-     */
+    // for use in dev mode only to make local images available for external API
     public string $imageTransformPublicUrl = '';
-
     public string $ga4MeasurementId = '';
     public string $ga4MeasurementSecret = '';
-
     public string $mailchimpApiKey = '';
     public string $mailchimpListId = '';
 }

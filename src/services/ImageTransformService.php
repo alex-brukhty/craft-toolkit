@@ -130,6 +130,9 @@ class ImageTransformService
      */
     public static function getTransformedImage(ImageTransformModel $transform, Asset $asset): string
     {
+        if (!$asset->url) {
+            return '';
+        }
         $domain = self::getWebsiteDomain();
         $assetUrl = $domain.UrlHelper::rootRelativeUrl($asset->url);
         $isGrayscale = $asset->grayscale ?? false;

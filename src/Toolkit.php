@@ -2,6 +2,7 @@
 
 namespace alexbrukhty\crafttoolkit;
 
+use alexbrukhty\crafttoolkit\services\CloudflareService;
 use Craft;
 use alexbrukhty\crafttoolkit\services\CacheService;
 use alexbrukhty\crafttoolkit\services\ImageTransformService;
@@ -21,6 +22,7 @@ use craft\base\Plugin;
  * @property-read ImageTransformService $imageTransformService
  * @property-read AnalyticsService $analyticsService
  * @property-read MailchimpService $mailchimpService
+ * @property-read CloudflareService $cloudflareService
  */
 class Toolkit extends Plugin
 {
@@ -34,6 +36,7 @@ class Toolkit extends Plugin
                 'imageTransformService' => ['class' => ImageTransformService::class],
                 'analyticsService' => ['class' => AnalyticsService::class],
                 'mailchimpService' => ['class' => MailchimpService::class],
+                'cloudflareService' => ['class' => CloudflareService::class],
             ],
         ];
     }
