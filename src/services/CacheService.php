@@ -227,9 +227,11 @@ class CacheService
     {
         // $this->writeLog(implode(PHP_EOL, $urs));
         foreach ($urls as $url) {
-            $path = $this->cacheFilePath($url);
-            if ($path) {
-                $this->delete($path);
+            if ($url) {
+                $path = $this->cacheFilePath($url);
+                if ($path) {
+                    $this->delete($path);
+                }
             }
         }
 
