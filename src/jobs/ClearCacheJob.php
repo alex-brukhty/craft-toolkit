@@ -2,20 +2,16 @@
 
 namespace alexbrukhty\crafttoolkit\jobs;
 
+use Craft;
 use alexbrukhty\crafttoolkit\Toolkit;
-use craft\base\Element;
 use craft\queue\BaseJob;
-use GuzzleHttp\Exception\GuzzleException;
-use Throwable;
-use yii\base\ErrorException;
-use yii\base\Exception;
 use yii\queue\RetryableJobInterface;
 
 class ClearCacheJob extends BaseJob implements RetryableJobInterface
 {
 
     public array $urls = [];
-    public Element|null $element;
+    public string|null $elementId = null;
     public bool $all = false;
 
     public function getTtr(): int
@@ -30,8 +26,11 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
 
     public function execute($queue): void
     {
-        if ($this->element) {
-            Toolkit::getInstance()->cacheService->clearCacheByElement($this->element);
+        if ($this->elementId) {
+            $element = Craft::$app->getElements()->getElementById($this->elementId);
+            if ($element) {
+                Toolkit::getInstance()->cacheService->clearCacheByElement($element);
+            }
         } elseif ($this->all) {
             Toolkit::getInstance()->cacheService->clearAllCache();
         } else {

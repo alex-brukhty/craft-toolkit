@@ -143,7 +143,7 @@ class CacheService
                                 || $element::class === Asset::class)
                         ) {
                             Queue::push(new ClearCacheJob([
-                                'element' => $element,
+                                'elementId' => $element->id,
                             ]));
                         }
                     }
@@ -203,15 +203,14 @@ class CacheService
         return false;
     }
 
-    private function cacheFilePath(string $url): string
+    private function cacheFilePath(string $uri): string
     {
-        $uri = UrlHelper::rootRelativeUrl($url);
-        $uriIsFile = str_contains($uri, '.');
         $uri = str_replace('__home__', '',  $uri);
         $uri = str_replace($this->siteUrl, '',  $uri);
-        $siteHostPath = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
+        $uriIsFile = str_contains($uri, '.');
+        $host = preg_replace('/^(http|https):\/\//i', '', UrlHelper::siteUrl());
 
-        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $siteHostPath . DIRECTORY_SEPARATOR . ($uriIsFile ? $uri : $uri.'/index.html'));
+        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($uriIsFile ? $uri : $uri.'/index.html'));
     }
 
     private function saveCache(string $content, string $uri): void
@@ -229,7 +228,7 @@ class CacheService
 
     public function clearCacheByUrls($urls = []): void
     {
-        // $this->writeLog(implode(PHP_EOL, $urs));
+        $this->writeLog(implode(PHP_EOL, $urls));
         foreach ($urls as $url) {
             if ($url) {
                 $path = $this->cacheFilePath($url);
@@ -264,11 +263,18 @@ class CacheService
 
                 $handle = $entry->section->handle ?? ($entry->type->handle ?? null);
                 if ($handle && isset($cacheRelations[$handle])) {
-                    $entries = Entry::find()->section($cacheRelations[$handle])->collect();
+                    $handles = array_filter($cacheRelations[$handle], fn ($item) => !strpos($item, '/'));
+                    $uris = array_filter($cacheRelations[$handle], fn ($item) => strpos($item, '/') === 0);
+                    $entries = Entry::find()->section($handles)->collect();
                     $products = $productElement ? $productElement::find()->type($cacheRelations[$handle])->collect() : Collection::make();
+
                     foreach ($entries->merge($products)->all() as $entry) {
                         $urls->put($entry->id, $entry->url);
-                    };
+                    }
+
+                    foreach ($uris as $uri) {
+                        $urls->put($uri, UrlHelper::siteUrl($uri));
+                    }
                 }
             }
 
