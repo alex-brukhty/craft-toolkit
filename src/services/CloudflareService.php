@@ -141,7 +141,7 @@ class CloudflareService
 
             Craft::warning(sprintf(
                 'Purged URLs (%d): %s',
-                $responseBody->result->id,
+                $responseBody?->result?->id || '',
                 $urlString
             ), 'cloudflare-purger');
 

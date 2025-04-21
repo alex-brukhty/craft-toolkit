@@ -283,7 +283,7 @@ class CacheService
                 }
             }
 
-            $this->clearCacheByUrls($urls->all());
+            $this->clearCacheByUrls($urls->toArray());
         } else {
             $this->clearAllCache();
         }
