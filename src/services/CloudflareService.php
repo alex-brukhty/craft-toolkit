@@ -61,13 +61,53 @@ class CloudflareService
 
         return $this->_client;
     }
+
+    public function purgeZoneCache(): ?object
+    {
+        if (!$this->getClient()) {
+            return null;
+        }
+
+        try {
+            $response = $this->getClient()->delete(sprintf(
+                'zones/%s/purge_cache',
+                $this->zone
+            ),
+                ['body' => Json::encode(['purge_everything' => true])]
+            );
+
+            $responseBody = Json::decode($response->getBody(), false);
+
+            if ($response->getStatusCode() !== 200 || $responseBody->success === false) {
+                Craft::info(sprintf(
+                    'Zone purge request failed: %s',
+                    Json::encode($responseBody)
+                ), 'cloudflare');
+
+                return (object)[
+                    'success' => false,
+                    'message' => $response->getBody()->getContents(),
+                    'result' => [],
+                ];
+            }
+
+            Craft::warning(
+                sprintf('Purged entire zone cache (%s)', $responseBody->result->id),
+                'cloudflare-purger'
+            );
+
+            return $responseBody;
+        } catch (ClientException|RequestException $exception) {
+            return $this->_handleApiException($exception);
+        }
+    }
+
     public function purgeUrls(array $urls = []): mixed
     {
         if (!$this->getClient()) {
             return null;
         }
 
-        // don’t do anything if URLs are missing
         if (count($urls) === 0) {
             return $this->_failureResponse(
                 'Cannot purge; no valid URLs.'
@@ -85,10 +125,10 @@ class CloudflareService
             $responseBody = Json::decode($response->getBody(), false);
 
             if ($response->getStatusCode() !== 200) {
-                Craft::info(sprintf(
+                Craft::warning(sprintf(
                     'Request failed: %s',
                     Json::encode($responseBody)
-                ), 'cloudflare');
+                ), 'cloudflare-purger');
 
                 return (object)[
                     'success' => false,
@@ -99,11 +139,11 @@ class CloudflareService
 
             $urlString = implode(',', $urls);
 
-            Craft::info(sprintf(
+            Craft::warning(sprintf(
                 'Purged URLs (%d): %s',
                 $responseBody->result->id,
                 $urlString
-            ), 'cloudflare');
+            ), 'cloudflare-purger');
 
             return $responseBody;
         } catch (ClientException|RequestException $exception) {
@@ -135,7 +175,7 @@ class CloudflareService
                 $message .= "- error code " . $error->code . ": " . $error->message . "\n";
             }
 
-            Craft::info($message, 'cloudflare');
+            Craft::warning($message, 'cloudflare-purger');
 
             return (object)[
                 'success' => false,

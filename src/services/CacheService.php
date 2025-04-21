@@ -2,6 +2,7 @@
 
 namespace alexbrukhty\crafttoolkit\services;
 
+use alexbrukhty\crafttoolkit\jobs\ClearCacheJob;
 use alexbrukhty\crafttoolkit\Toolkit;
 use alexbrukhty\crafttoolkit\utilities\CacheUtility;
 use alexbrukhty\crafttoolkit\models\Settings;
@@ -15,6 +16,7 @@ use craft\events\RegisterComponentTypesEvent;
 use craft\helpers\App;
 use craft\helpers\ElementHelper;
 use craft\helpers\FileHelper;
+use craft\helpers\Queue;
 use craft\helpers\UrlHelper;
 use craft\services\Elements;
 use craft\services\Utilities;
@@ -140,7 +142,9 @@ class CacheService
                                 || $element::class === 'craft\\commerce\\elements\\Product'
                                 || $element::class === Asset::class)
                         ) {
-                            $this->clearCacheByElement($element);
+                            Queue::push(new ClearCacheJob([
+                                'element' => $element,
+                            ]));
                         }
                     }
                 );
@@ -278,6 +282,7 @@ class CacheService
     {
         try {
             FileHelper::removeDirectory($this->cacheBasePath);
+            Toolkit::getInstance()->cloudflareService->purgeZoneCache();
         } catch (ErrorException $exception) {
             Craft::$app->log->logger->log($exception->getMessage(), 'warning', 'static-cache');
         }
