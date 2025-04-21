@@ -233,7 +233,7 @@ class CacheService
 
     public function clearCacheByUrls($urls = []): void
     {
-        $this->writeLog(implode(PHP_EOL, $urls));
+//        $this->writeLog(implode(PHP_EOL, $urls));
         foreach ($urls as $url) {
             if ($url) {
                 $path = $this->cacheFilePath($url);
