@@ -4,7 +4,13 @@ namespace alexbrukhty\crafttoolkit\jobs;
 
 use Craft;
 use alexbrukhty\crafttoolkit\Toolkit;
+use craft\base\Element;
+use craft\errors\MutexException;
 use craft\queue\BaseJob;
+use GuzzleHttp\Exception\GuzzleException;
+use Throwable;
+use yii\base\ErrorException;
+use yii\base\Exception;
 use yii\queue\RetryableJobInterface;
 
 class ClearCacheJob extends BaseJob implements RetryableJobInterface
@@ -26,15 +32,24 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
 
     public function execute($queue): void
     {
-        if ($this->elementId) {
-            $element = Craft::$app->getElements()->getElementById($this->elementId);
-            if ($element) {
-                Toolkit::getInstance()->cacheService->clearCacheByElement($element);
+        $lockKey = 'clear:' . $this->elementId;
+        $mutex = Craft::$app->getMutex();
+
+        if ($mutex->acquire($lockKey) || !$this->elementId) {
+            if ($this->elementId) {
+                $element = Craft::$app->getElements()->getElementById($this->elementId);
+                if ($element) {
+                    Toolkit::getInstance()->cacheService->clearCacheByElement($element);
+                }
+            } elseif ($this->all) {
+                Toolkit::getInstance()->cacheService->clearAllCache();
+            } else {
+                Toolkit::getInstance()->cacheService->clearCacheByUrls($this->urls);
             }
-        } elseif ($this->all) {
-            Toolkit::getInstance()->cacheService->clearAllCache();
+
+            $mutex->release($lockKey);
         } else {
-            Toolkit::getInstance()->cacheService->clearCacheByUrls($this->urls);
+            throw new \yii\db\Exception('asdasd');
         }
     }
 
