@@ -136,11 +136,16 @@ class CacheService
                     function(mixed $event) {
                         /** @var Element $element */
                         $element = $event->element;
+
                         if (
                             !ElementHelper::isDraftOrRevision($element)
-                            && ($element::class === Entry::class
+                            && !in_array($element->siteId, $this->getSettings()->excludeSiteIds ?? [], true)
+                            && $element->url
+                            && (
+                                $element::class === Entry::class
                                 || $element::class === 'craft\\commerce\\elements\\Product'
-                                || $element::class === Asset::class)
+                                || $element::class === Asset::class
+                            )
                         ) {
                             Queue::push(new ClearCacheJob([
                                 'elementId' => $element->id,

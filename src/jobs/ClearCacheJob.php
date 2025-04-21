@@ -4,13 +4,7 @@ namespace alexbrukhty\crafttoolkit\jobs;
 
 use Craft;
 use alexbrukhty\crafttoolkit\Toolkit;
-use craft\base\Element;
-use craft\errors\MutexException;
 use craft\queue\BaseJob;
-use GuzzleHttp\Exception\GuzzleException;
-use Throwable;
-use yii\base\ErrorException;
-use yii\base\Exception;
 use yii\queue\RetryableJobInterface;
 
 class ClearCacheJob extends BaseJob implements RetryableJobInterface
@@ -48,8 +42,6 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
             }
 
             $mutex->release($lockKey);
-        } else {
-            throw new \yii\db\Exception('asdasd');
         }
     }
 
