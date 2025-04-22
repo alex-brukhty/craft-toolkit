@@ -104,14 +104,8 @@ class CloudflareService
 
     public function purgeUrls(array $urls = []): mixed
     {
-        if (!$this->getClient()) {
+        if (!$this->getClient() || count($urls) === 0) {
             return null;
-        }
-
-        if (count($urls) === 0) {
-            return $this->_failureResponse(
-                'Cannot purge; no valid URLs.'
-            );
         }
 
         try {
@@ -153,7 +147,7 @@ class CloudflareService
 
     private function _failureResponse(string $message): object
     {
-        Craft::error($message, 'cloudflare');
+        Craft::warning($message, 'cloudflare-purger');
 
         return (object)[
             'success' => false,
