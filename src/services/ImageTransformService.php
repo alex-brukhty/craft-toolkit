@@ -297,7 +297,7 @@ class ImageTransformService
     /**
      * @throws InvalidFieldException
      */
-    public static function getSrc(Asset $asset, bool|int $last = false): string
+    public static function getSrc(Asset $asset, int $index): string
     {
         $transformFieldHandle = self::getTransformFieldHandle($asset);
         $transformsString = $transformFieldHandle && isset($asset->$transformFieldHandle) ? $asset->getFieldValue($transformFieldHandle) : null;
@@ -310,12 +310,10 @@ class ImageTransformService
             return $asset->url;
         }
 
+        $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
+
         return UrlHelper::siteUrl(
-            is_numeric($last) ? ($transforms[$last] ?? '')
-                : (
-            $last ? ($transforms[array_key_last($transforms)]->uri ?? '')
-                : ($transforms[0]->uri ?? '')
-            )
+            $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
         );
     }
 
