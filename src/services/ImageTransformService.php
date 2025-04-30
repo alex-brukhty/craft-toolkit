@@ -297,7 +297,7 @@ class ImageTransformService
     /**
      * @throws InvalidFieldException
      */
-    public static function getSrc(Asset $asset, ?int $index): string
+    public static function getSrc(Asset $asset, ?int $index = null): string
     {
         $transformFieldHandle = self::getTransformFieldHandle($asset);
         $transformsString = $transformFieldHandle && isset($asset->$transformFieldHandle) ? $asset->getFieldValue($transformFieldHandle) : null;
