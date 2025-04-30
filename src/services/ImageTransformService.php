@@ -279,6 +279,7 @@ class ImageTransformService
 
     /**
      * @throws InvalidFieldException
+     * @throws Exception
      */
     public static function getSrcset(Asset $asset): string
     {
@@ -289,14 +290,14 @@ class ImageTransformService
         }
         $transforms = (array)json_decode($transformsString);
         return implode(', ', array_map(function ($tr) {
-            return $tr->uri." ".$tr->width."w";
+            return UrlHelper::siteUrl($tr->uri)." ".$tr->width."w";
         }, $transforms));
     }
 
     /**
      * @throws InvalidFieldException
      */
-    public static function getSrc(Asset $asset, bool $last = false): string
+    public static function getSrc(Asset $asset, bool|int $last = false): string
     {
         $transformFieldHandle = self::getTransformFieldHandle($asset);
         $transformsString = $transformFieldHandle && isset($asset->$transformFieldHandle) ? $asset->getFieldValue($transformFieldHandle) : null;
@@ -309,7 +310,13 @@ class ImageTransformService
             return $asset->url;
         }
 
-        return $last ? ($transforms[array_key_last($transforms)]->uri ?? '') : ($transforms[0]->uri ?? '');
+        return UrlHelper::siteUrl(
+            is_numeric($last) ? ($transforms[$last] ?? '')
+                : (
+            $last ? ($transforms[array_key_last($transforms)]->uri ?? '')
+                : ($transforms[0]->uri ?? '')
+            )
+        );
     }
 
     public static function placeholderSVG(): ?string

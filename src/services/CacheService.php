@@ -246,6 +246,9 @@ class CacheService
         Toolkit::getInstance()->cloudflareService->purgeUrls($urls);
     }
 
+    /**
+     * @throws Exception
+     */
     public function clearCacheByElement(Element $element): void
     {
         $urls = Collection::make();
@@ -259,7 +262,7 @@ class CacheService
                 $entries = Entry::find()->relatedTo($element)->collect();
                 $products = $productElement ? $productElement::find()->relatedTo($element)->collect() : Collection::make();
                 foreach ($entries->merge($products)->all() as $entry) {
-                    $url = $entry->getRootOwner()->uri;
+                    $url = $entry->getRootOwner()->url;
                     $urls->put($entry->id, $url);
                 };
             } else {
@@ -283,7 +286,7 @@ class CacheService
                 }
             }
 
-            $this->clearCacheByUrls($urls->toArray());
+            $this->clearCacheByUrls($urls->all());
         } else {
             $this->clearAllCache();
         }
