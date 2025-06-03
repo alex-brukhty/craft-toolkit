@@ -6,6 +6,7 @@ use Craft;
 use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\InvalidFieldException;
+use craft\errors\SiteNotFoundException;
 use craft\helpers\App;
 use craft\helpers\ArrayHelper;
 use craft\helpers\ElementHelper;
@@ -277,13 +278,14 @@ class ImageTransformService
     }
 
     /**
-     * @throws InvalidConfigException
+     * @throws SiteNotFoundException
      */
-    public static function withVolumeRoot(Asset $asset, $uri = ''): string
+    public static function withSiteUrl($uri = ''): string
     {
-        $volumeRootUrl = trim($asset->getVolume()->getFs()->getRootUrl(), '/');
+        $siteUrl = App::env('CRAFT_SITE_URL') ?? '/';
+        $siteUrl = rtrim($siteUrl, '/');
         $uri = ltrim($uri, '/');
-        return "{$volumeRootUrl}/{$uri}";
+        return "{$siteUrl}/{$uri}";
     }
 
     /**
@@ -299,12 +301,13 @@ class ImageTransformService
         }
         $transforms = (array)json_decode($transformsString);
         return implode(', ', array_map(function ($tr) use ($asset) {
-            return ImageTransformService::withVolumeRoot($asset, $tr->uri)." ".$tr->width."w";
+            return ImageTransformService::withSiteUrl($tr->uri)." ".$tr->width."w";
         }, $transforms));
     }
 
     /**
      * @throws InvalidFieldException
+     * @throws SiteNotFoundException
      */
     public static function getSrc(Asset $asset, ?int $index = null): string
     {
@@ -321,8 +324,8 @@ class ImageTransformService
 
         $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
 
-        return ImageTransformService::withVolumeRoot(
-            $asset, $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
+        return ImageTransformService::withSiteUrl(
+            $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
         );
     }
 
