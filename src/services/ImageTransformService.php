@@ -276,6 +276,15 @@ class ImageTransformService
         return self::getTransformFolderFull($asset, $transform, $asFile).'/'.$withoutExt.'.'.$transform->format;
     }
 
+    /**
+     * @throws InvalidConfigException
+     */
+    public static function withVolumeRoot(Asset $asset, $uri = ''): string
+    {
+        $volumeRootUrl = trim($asset->getVolume()->getFs()->getRootUrl(), '/');
+        $uri = ltrim($uri, '/');
+        return "{$volumeRootUrl}/{$uri}";
+    }
 
     /**
      * @throws InvalidFieldException
@@ -289,8 +298,8 @@ class ImageTransformService
             return  '';
         }
         $transforms = (array)json_decode($transformsString);
-        return implode(', ', array_map(function ($tr) {
-            return UrlHelper::siteUrl($tr->uri)." ".$tr->width."w";
+        return implode(', ', array_map(function ($tr) use ($asset) {
+            return ImageTransformService::withVolumeRoot($asset, $tr->uri)." ".$tr->width."w";
         }, $transforms));
     }
 
@@ -312,8 +321,8 @@ class ImageTransformService
 
         $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
 
-        return UrlHelper::siteUrl(
-            $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
+        return ImageTransformService::withVolumeRoot(
+            $asset, $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
         );
     }
 
