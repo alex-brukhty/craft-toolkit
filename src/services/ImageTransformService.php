@@ -279,10 +279,11 @@ class ImageTransformService
 
     /**
      * @throws SiteNotFoundException
+     * @throws Exception
      */
     public static function withSiteUrl($uri = ''): string
     {
-        $siteUrl = App::parseEnv('PRIMARY_SITE_URL') ?? '/';
+        $siteUrl = App::env('PRIMARY_SITE_URL') ?? '/';
         $siteUrl = rtrim($siteUrl, '/');
         $uri = ltrim($uri, '/');
         return "{$siteUrl}/{$uri}";
