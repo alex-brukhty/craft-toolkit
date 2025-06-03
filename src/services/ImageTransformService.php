@@ -282,7 +282,7 @@ class ImageTransformService
      */
     public static function withSiteUrl($uri = ''): string
     {
-        $siteUrl = App::env('CRAFT_SITE_URL') ?? '/';
+        $siteUrl = App::parseEnv('PRIMARY_SITE_URL') ?? '/';
         $siteUrl = rtrim($siteUrl, '/');
         $uri = ltrim($uri, '/');
         return "{$siteUrl}/{$uri}";
