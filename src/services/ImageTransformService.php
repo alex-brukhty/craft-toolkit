@@ -58,9 +58,10 @@ class ImageTransformService
 
     public static function getWebsiteDomain(): string
     {
-        return App::devMode()
+        $domain = App::devMode()
             ? Toolkit::getInstance()->getSettings()->imageTransformPublicUrl
             : (Craft::$app->getSites()->getAllSites()[0]?->baseUrl ?? App::env('PRIMARY_SITE_URL'));
+        return rtrim($domain, '/');
     }
 
     public static function registerEvents(): void
