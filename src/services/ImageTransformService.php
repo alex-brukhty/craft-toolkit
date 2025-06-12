@@ -60,7 +60,7 @@ class ImageTransformService
     {
         return App::devMode()
             ? Toolkit::getInstance()->getSettings()->imageTransformPublicUrl
-            : (Craft::$app->getSites()->getAllSites()[0]?->baseUrl ?? App::parseEnv('PRIMARY_SITE_URL'));
+            : (Craft::$app->getSites()->getAllSites()[0]?->baseUrl ?? App::env('PRIMARY_SITE_URL'));
     }
 
     public static function registerEvents(): void
