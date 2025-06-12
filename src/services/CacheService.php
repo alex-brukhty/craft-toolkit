@@ -118,7 +118,7 @@ class CacheService
                         return;
                     }
 
-                    $this->saveCache($response->content, $uri);
+                    $this->saveCache($response->content, $request->getAbsoluteUrl());
                 },
                 append: false,
             );
@@ -210,18 +210,18 @@ class CacheService
 
     private function cacheFilePath(string $uri): string
     {
-        $uri = str_replace('__home__', '',  $uri);
-        $uri = str_replace($this->siteUrl, '',  $uri);
-        $uriIsFile = str_contains($uri, '.');
-        $host = preg_replace('/^(http|https):\/\//i', '', UrlHelper::siteUrl());
-
-        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($uriIsFile ? $uri : $uri.'/index.html'));
+        $urlIsFile = str_contains($uri, '.');
+        $host = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
+        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($urlIsFile ? $uri : $uri.'/index.html'));
     }
 
-    private function saveCache(string $content, string $uri): void
+    private function saveCache(string $content, string $url): void
     {
+        $uri = str_replace($this->siteUrl, '',  $url);
+        $uri = str_replace('__home__', '',  $uri);
+        $urlIsFile = str_contains($uri, '.');
         try {
-            if (!in_array($uri, ['site.webmanifest', 'robots.txt'])) {
+            if (!$urlIsFile) {
                 $content .= '<!-- Cached on ' . date('c') . ' -->';
             }
             $path = $this->cacheFilePath($uri);
@@ -236,7 +236,9 @@ class CacheService
 //        $this->writeLog(implode(PHP_EOL, $urls));
         foreach ($urls as $url) {
             if ($url) {
-                $path = $this->cacheFilePath($url);
+                $uri = str_replace($this->siteUrl, '',  $url);
+                $uri = str_replace('__home__', '',  $uri);
+                $path = $this->cacheFilePath($uri);
                 if ($path) {
                     $this->delete($path);
                 }

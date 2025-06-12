@@ -6,6 +6,7 @@ use Craft;
 use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\InvalidFieldException;
+use craft\errors\SiteNotFoundException;
 use craft\helpers\App;
 use craft\helpers\ArrayHelper;
 use craft\helpers\ElementHelper;
@@ -276,6 +277,17 @@ class ImageTransformService
         return self::getTransformFolderFull($asset, $transform, $asFile).'/'.$withoutExt.'.'.$transform->format;
     }
 
+    /**
+     * @throws SiteNotFoundException
+     * @throws Exception
+     */
+    public static function withSiteUrl($uri = ''): string
+    {
+        $siteUrl = App::env('PRIMARY_SITE_URL') ?? '/';
+        $siteUrl = rtrim($siteUrl, '/');
+        $uri = ltrim($uri, '/');
+        return "{$siteUrl}/{$uri}";
+    }
 
     /**
      * @throws InvalidFieldException
@@ -289,13 +301,14 @@ class ImageTransformService
             return  '';
         }
         $transforms = (array)json_decode($transformsString);
-        return implode(', ', array_map(function ($tr) {
-            return UrlHelper::siteUrl($tr->uri)." ".$tr->width."w";
+        return implode(', ', array_map(function ($tr) use ($asset) {
+            return ImageTransformService::withSiteUrl($tr->uri)." ".$tr->width."w";
         }, $transforms));
     }
 
     /**
      * @throws InvalidFieldException
+     * @throws SiteNotFoundException
      */
     public static function getSrc(Asset $asset, ?int $index = null): string
     {
@@ -312,7 +325,7 @@ class ImageTransformService
 
         $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
 
-        return UrlHelper::siteUrl(
+        return ImageTransformService::withSiteUrl(
             $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
         );
     }
