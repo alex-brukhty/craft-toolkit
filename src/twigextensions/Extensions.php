@@ -264,8 +264,9 @@ class Extensions extends AbstractExtension
                         null,
                         [
                             'src' => !$lazy ? $asset->url : null,
+                            'crossorigin' => 'anonymous',
                             'data-src' => $lazy ? $asset->url : null,
-                            'type' => 'video/mp4'
+                            'type' => 'video/mp4',
                         ]
                     ),
                     [
