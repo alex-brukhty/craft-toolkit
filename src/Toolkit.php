@@ -67,6 +67,9 @@ class Toolkit extends Plugin
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
             $this->cacheService->registerClearCaches();
+            if ($this->cloudflareService->enabled) {
+                $this->cloudflareService->registerClearCaches();
+            }
         }
     }
 }

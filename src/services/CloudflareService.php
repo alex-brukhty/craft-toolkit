@@ -5,10 +5,13 @@ namespace alexbrukhty\crafttoolkit\services;
 use Craft;
 use alexbrukhty\crafttoolkit\Toolkit;
 use alexbrukhty\crafttoolkit\models\Settings;
+use craft\events\RegisterCacheOptionsEvent;
 use craft\helpers\Json;
+use craft\utilities\ClearCaches;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
+use yii\base\Event;
 
 class CloudflareService
 {
@@ -34,6 +37,19 @@ class CloudflareService
     public function getSettings(): Settings
     {
         return Toolkit::getInstance()->getSettings();
+    }
+
+    public function registerClearCaches(): void
+    {
+        Event::on(ClearCaches::class, ClearCaches::EVENT_REGISTER_CACHE_OPTIONS,
+            function(RegisterCacheOptionsEvent $event) {
+                $event->options[] = [
+                    'key' => '_toolkit',
+                    'label' => 'Cloudflare Purge Zone',
+                    'action' => [$this, 'purgeZoneCache'],
+                ];
+            }
+        );
     }
 
     private function _getClientHeaders(): array

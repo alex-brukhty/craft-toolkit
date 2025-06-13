@@ -298,7 +298,6 @@ class CacheService
     {
         try {
             FileHelper::removeDirectory($this->cacheBasePath);
-            Toolkit::getInstance()->cloudflareService->purgeZoneCache();
         } catch (ErrorException $exception) {
             Craft::$app->log->logger->log($exception->getMessage(), 'warning', 'static-cache');
         }
