@@ -178,7 +178,7 @@ class ImageTransformService
      */
     public function cloudflareImageUrl(Asset $asset, MediaTransform $transform): string
     {
-        $zone = App::env('CLOUDFLARE_ZONE');
+        $zone = App::env('CLOUDFLARE_DOMAIN');
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
         $isGrayscale = $asset->grayscale ?? false;
         $options = [];
@@ -221,7 +221,7 @@ class ImageTransformService
      */
     public function cloudflareVideoUrl(Asset $asset, MediaTransform $transform): string
     {
-        $zone = App::env('CLOUDFLARE_ZONE');
+        $zone = App::env('CLOUDFLARE_DOMAIN');
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
         $options = ['mode=video', 'audio=false'];
 
