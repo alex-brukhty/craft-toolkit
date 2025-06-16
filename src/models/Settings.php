@@ -9,6 +9,9 @@ use craft\base\Model;
  */
 class Settings extends Model
 {
+    public const TRANSFORMER_IMAGE_WSRV = 'wsrvImage';
+    public const TRANSFORMER_IMAGE_CLOUDFLARE = 'cloudflareImage';
+    public const TRANSFORMER_VIDEO_CLOUDFLARE = 'cloudflareVideo';
     public bool $cacheEnabled = false;
     public array $cacheInclude = [];
     public array $cacheExclude = [];
@@ -19,7 +22,10 @@ class Settings extends Model
     public string $cloudflareZone = '';
     public bool $cloudflareEnabled = false;
     public bool $imageTransformEnabled = false;
-    public string $imageTransformApiUrl = 'https://wsrv.nl/';
+    public bool $videoTransformEnabled = false;
+    public array $videoTransforms = [];
+    public string $imageTransformAdapter = self::TRANSFORMER_IMAGE_WSRV;
+    public string $videoTransformAdapter = self::TRANSFORMER_VIDEO_CLOUDFLARE;
     public array $imageTransformVolumes = [];
     public array $imageTransformFieldsOverride = [];
     public array $warmSiteIds = [];

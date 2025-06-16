@@ -2,9 +2,11 @@
 
 namespace alexbrukhty\crafttoolkit\services;
 
+use alexbrukhty\crafttoolkit\models\MediaTransform;
 use Craft;
 use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use alexbrukhty\crafttoolkit\Toolkit;
+use craft\base\Element;
 use craft\errors\InvalidFieldException;
 use craft\errors\SiteNotFoundException;
 use craft\helpers\App;
@@ -12,7 +14,6 @@ use craft\helpers\ArrayHelper;
 use craft\helpers\ElementHelper;
 use craft\helpers\Queue;
 use craft\helpers\UrlHelper;
-use craft\models\ImageTransform as ImageTransformModel;
 use craft\helpers\FileHelper as CraftFileHelper;
 use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
@@ -34,9 +35,9 @@ class ImageTransformService
         return Toolkit::getInstance()->getSettings()->imageTransformEnabled ?? false;
     }
 
-    public static function getApiUrl(): string
+    public static function isVideoEnabled(): bool
     {
-        return Toolkit::getInstance()->getSettings()->imageTransformApiUrl;
+        return Toolkit::getInstance()->getSettings()->videoTransformEnabled ?? false;
     }
 
     public static function overrideFields($fieldHandle): string
@@ -50,12 +51,15 @@ class ImageTransformService
         return $fieldHandle;
     }
 
-    public static function getTransformFieldHandle($asset)
+    public static function getTransformFieldHandle($asset): string
     {
         $handle = self::overrideFields('transformUrls');
         return $asset[$handle] ? $handle : 'transformUrls';
     }
 
+    /**
+     * @throws Exception
+     */
     public static function getWebsiteDomain(): string
     {
         $domain = App::devMode()
@@ -64,10 +68,41 @@ class ImageTransformService
         return rtrim($domain, '/');
     }
 
+    public static function canTransform(Asset $asset): bool
+    {
+        $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
+        $transformFieldHandle = self::getTransformFieldHandle($asset);
+
+        return (
+            // check if enabled
+            (self::isEnabled() && $asset->kind === Asset::KIND_IMAGE)
+            || (self::isVideoEnabled() && $asset->kind === Asset::KIND_VIDEO)
+            )
+
+            // check if asset not in draft
+            && !ElementHelper::isDraftOrRevision($asset)
+
+            // skip some unwanted extension
+            && !in_array(strtolower($asset->extension), ['svg', 'gif', 'webp', 'avif'])
+
+            // check if a field is empty
+            && ($transformFieldHandle && (
+                trim($asset[$transformFieldHandle]) === null
+                || trim($asset[$transformFieldHandle]) === ''
+                || trim($asset[$transformFieldHandle]) === '[]')
+            )
+
+            // check for skip parameter
+            && (isset($asset[self::SKIP_TRANSFORM]) ? !$asset[self::SKIP_TRANSFORM] : !isset($asset[self::SKIP_TRANSFORM]))
+
+            // check for allowed volumes
+            && (count($allowedVolumes) > 0 && in_array($asset->volumeId, $allowedVolumes));
+    }
+
     public static function registerEvents(): void
     {
         Event::on(
-            Asset::class, Asset::EVENT_BEFORE_SAVE,
+            Asset::class, Element::EVENT_BEFORE_SAVE,
             function(Event $event) {
                 /* @var $asset Asset */
                 $asset = $event->sender;
@@ -84,22 +119,12 @@ class ImageTransformService
 
         Event::on(
             Asset::class,
-            Asset::EVENT_AFTER_SAVE,
+            Element::EVENT_AFTER_SAVE,
             function(Event $event) {
                 /* @var $asset Asset */
                 $asset = $event->sender;
-                $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
-                $transformFieldHandle = self::getTransformFieldHandle($asset);
 
-                if (
-                    !self::isEnabled()
-                    || $asset->kind !== 'image'
-                    || ElementHelper::isDraftOrRevision($asset)
-                    || in_array(strtolower($asset->extension), ['svg', 'gif', 'webp', 'avif'])
-                    || ($transformFieldHandle && trim($asset[$transformFieldHandle]) !== '' && trim($asset[$transformFieldHandle]) !== '[]')
-                    || (isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])
-                    || (count($allowedVolumes) > 0 && !in_array($asset->volumeId, $allowedVolumes))
-                ) {
+                if (!self::canTransform($asset)) {
                     return;
                 }
 
@@ -111,7 +136,7 @@ class ImageTransformService
 
         Event::on(
             Asset::class,
-            Asset::EVENT_BEFORE_DELETE,
+            Element::EVENT_BEFORE_DELETE,
             function(Event $event) {
                 /** @var Asset $asset */
                 $asset = $event->sender;
@@ -120,23 +145,13 @@ class ImageTransformService
         );
     }
 
-
     /**
-     * @param ImageTransformModel $transform
-     * @param Asset $asset
-     * @return string
-     *
-     * Main method for transforming images using the external API like `wsrv.nl`
-     * Example transformation: https://wsrv.nl/?url=wsrv.nl/lichtenstein.jpg&w=300&q=80&output=webp
-     * @throws InvalidConfigException
+     * @throws Exception
      */
-    public static function getTransformedImage(ImageTransformModel $transform, Asset $asset): string
+    public function wsrvImageUrl(Asset $asset, MediaTransform $transform): string
     {
-        if (!$asset->url) {
-            return '';
-        }
         $domain = self::getWebsiteDomain();
-        $assetUrl = $domain.UrlHelper::rootRelativeUrl($asset->url);
+        $assetUrl = $domain . UrlHelper::rootRelativeUrl($asset->url);
         $isGrayscale = $asset->grayscale ?? false;
         $params = [
             'url' => $assetUrl,
@@ -150,8 +165,110 @@ class ImageTransformService
             $params['con'] = '-20';
         }
 
-        $url = UrlHelper::url(self::getApiUrl(), $params);
+        return UrlHelper::url('https://wsrv.nl/', $params);
+    }
 
+    /**
+     * @param Asset $asset
+     * @param MediaTransform $transform
+     * @return string
+     * @throws Exception
+     *
+     * https://<ZONE>/cdn-cgi/image/<OPTIONS>/<SOURCE-IMAGE>
+     */
+    public function cloudflareImageUrl(Asset $asset, MediaTransform $transform): string
+    {
+        $zone = App::env('CLOUDFLARE_ZONE');
+        $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
+        $isGrayscale = $asset->grayscale ?? false;
+        $options = [];
+
+        if ($transform->width) {
+            $options[] = "width=$transform->width";
+        }
+
+        if ($transform->height) {
+            $options[] = "height=$transform->height";
+        }
+
+        if ($transform->format) {
+            $options[] = "format=$transform->format";
+        }
+
+        if ($transform->fit) {
+            $options[] = "fit=$transform->fit";
+        }
+
+        if ($transform->quality) {
+            $options[] = "quality=$transform->quality";
+        }
+
+        if ($isGrayscale) {
+            $options[] = 'saturation=0,contrast=0.8';
+        }
+
+        $options = implode(',', $options);
+        return "https://$zone/cdn-cgi/image/$options/$assetUrl";
+    }
+
+    /**
+     * @param Asset $asset
+     * @param MediaTransform $transform
+     * @return string
+     * @throws Exception
+     *
+     * https://<ZONE>/cdn-cgi/media/<OPTIONS>/<SOURCE-VIDEO>
+     */
+    public function cloudflareVideoUrl(Asset $asset, MediaTransform $transform): string
+    {
+        $zone = App::env('CLOUDFLARE_ZONE');
+        $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
+        $options = ['mode=video', 'audio=false'];
+
+        if ($transform->width) {
+            $options[] = "width=$transform->width";
+        }
+
+        if ($transform->height) {
+            $options[] = "height=$transform->height";
+        }
+
+        if ($transform->fit) {
+            $options[] = "fit=$transform->fit";
+        }
+
+        $options = implode(',', $options);
+        return "https://$zone/cdn-cgi/media/$options/$assetUrl";
+    }
+
+    /**
+     * @throws Exception
+     */
+    public static function getTransformUrl(Asset $asset, MediaTransform $transform): string
+    {
+        $adapter = $asset->kind === Asset::KIND_VIDEO
+            ? Toolkit::getInstance()->getSettings()->videoTransformAdapter . 'Url'
+            : Toolkit::getInstance()->getSettings()->imageTransformAdapter . 'Url';
+        return self::$adapter($asset, $transform);
+    }
+
+
+    /**
+     * @param MediaTransform $transform
+     * @param Asset $asset
+     * @return string
+     * @throws InvalidConfigException|Exception
+     *
+     * Main method for transforming images using the external API like `wsrv.nl`
+     * Example transformation: https://wsrv.nl/?url=wsrv.nl/lichtenstein.jpg&w=300&q=80&output=webp
+     */
+    public static function getTransformedMedia(MediaTransform $transform, Asset $asset): string
+    {
+        if (!$asset->url) {
+            return '';
+        }
+
+        $url = self::getTransformUrl($asset, $transform);
         $save = self::getTransformUri($asset, $transform, true);
 
         Craft::getLogger()->log("Transform: $url", Logger::LEVEL_INFO, 'image-transform');
@@ -174,36 +291,34 @@ class ImageTransformService
      * @throws GuzzleException
      * @throws Throwable
      */
-    public static function transformImage(string $assetId, $forced = false): void
+    public static function transformImage(string $assetId): void
     {
-        if (!self::isEnabled()) {
-            return;
-        }
-
         $asset = Asset::find()->id($assetId)->one();
 
         if (!$asset) {
             return;
         }
 
-        if ((isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM])) {
+        if (!self::canTransform($asset)) {
             return;
         }
 
-        $transformFieldHandle = self::getTransformFieldHandle($asset);
-        if (!$forced && $transformFieldHandle && trim($asset[$transformFieldHandle]) !== '' && trim($asset[$transformFieldHandle]) !== '[]') {
-            return;
+        if ($asset->kind === Asset::KIND_VIDEO && self::isVideoEnabled()) {
+            $transforms = Toolkit::getInstance()->getSettings()->videoTransforms;
+            foreach ($transforms as $key => $transform) {
+                $transforms[$key] = new MediaTransform($transform);
+                $transforms[$key]->format = $asset->extension;
+            }
+        } else {
+            $transforms = Craft::$app->imageTransforms->getAllTransforms();
         }
 
-        $transforms = Craft::$app->imageTransforms->getAllTransforms();
         ArrayHelper::multisort($transforms, 'width');
-
-        $parsed = [];
 
         try {
             $parsed = array_map(function ($transform) use ($asset) {
                 return [
-                    'uri' => "/".self::getTransformedImage($transform, $asset),
+                    'uri' => DIRECTORY_SEPARATOR . self::getTransformedMedia($transform, $asset),
                     'width' => $transform->width
                 ];
             }, $transforms);
@@ -263,7 +378,7 @@ class ImageTransformService
     /**
      * @throws InvalidConfigException
      */
-    public static function getTransformFolderFull(Asset $asset, ImageTransformModel $transform, $asFile = false): string
+    public static function getTransformFolderFull(Asset $asset, MediaTransform $transform, $asFile = false): string
     {
         return CraftFileHelper::normalizePath(self::getTransformFolder($asset, $asFile).'/'.$transform->width);
     }
@@ -271,7 +386,7 @@ class ImageTransformService
     /**
      * @throws InvalidConfigException
      */
-    public static function getTransformUri(Asset $asset, ImageTransformModel $transform, $asFile = false): string
+    public static function getTransformUri(Asset $asset, MediaTransform $transform, $asFile = false): string
     {
         $filename = preg_replace('/(@|%40)/', '_', $asset->filename);
         $withoutExt = preg_replace('/\.\w+$/', '', $filename);
@@ -287,7 +402,7 @@ class ImageTransformService
         $siteUrl = App::env('PRIMARY_SITE_URL') ?? '/';
         $siteUrl = rtrim($siteUrl, '/');
         $uri = ltrim($uri, '/');
-        return "{$siteUrl}/{$uri}";
+        return "$siteUrl/$uri";
     }
 
     /**
@@ -309,7 +424,7 @@ class ImageTransformService
 
     /**
      * @throws InvalidFieldException
-     * @throws SiteNotFoundException
+     * @throws SiteNotFoundException|Exception
      */
     public static function getSrc(Asset $asset, ?int $index = null): string
     {
@@ -329,12 +444,5 @@ class ImageTransformService
         return ImageTransformService::withSiteUrl(
             $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')
         );
-    }
-
-    public static function placeholderSVG(): ?string
-    {
-        $color = $config['color'] ?? 'transparent';
-
-        return 'data:image/svg+xml;charset=utf-8,'.rawurlencode(sprintf('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'%s\' height=\'%s\' style=\'background:%s\'/>', 1, 1, $color));
     }
 }
