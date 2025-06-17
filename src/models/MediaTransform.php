@@ -9,13 +9,13 @@ use craft\base\Model;
  */
 class MediaTransform extends Model
 {
-    public int $width;
+    public int|null $width = null;
 
-    public int $height;
+    public int|null $height = null;
 
     public string $format = 'auto';
 
-    public int $quality;
+    public int|null $quality = null;
 
     public string $fit = 'cover';
 }

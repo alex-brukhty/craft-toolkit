@@ -18,6 +18,7 @@ use craft\helpers\FileHelper as CraftFileHelper;
 use craft\elements\Asset;
 use GuzzleHttp\Exception\GuzzleException;
 use alexbrukhty\crafttoolkit\jobs\TransformImageJob;
+use Illuminate\Support\Collection;
 use yii\base\ErrorException;
 use yii\base\Event;
 use yii\base\Exception;
@@ -68,7 +69,7 @@ class ImageTransformService
         return rtrim($domain, '/');
     }
 
-    public static function canTransform(Asset $asset): bool
+    public static function canTransform(Asset $asset, $forsed = false, $withVideo = false): bool
     {
         $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
         $transformFieldHandle = self::getTransformFieldHandle($asset);
@@ -76,7 +77,7 @@ class ImageTransformService
         return (
             // check if enabled
             (self::isEnabled() && $asset->kind === Asset::KIND_IMAGE)
-            || (self::isVideoEnabled() && $asset->kind === Asset::KIND_VIDEO)
+            || ($withVideo && self::isVideoEnabled() && $asset->kind === Asset::KIND_VIDEO)
             )
 
             // check if asset not in draft
@@ -85,18 +86,22 @@ class ImageTransformService
             // skip some unwanted extension
             && !in_array(strtolower($asset->extension), ['svg', 'gif', 'webp', 'avif'])
 
-            // check if a field is empty
-            && ($transformFieldHandle && (
-                trim($asset[$transformFieldHandle]) === null
-                || trim($asset[$transformFieldHandle]) === ''
-                || trim($asset[$transformFieldHandle]) === '[]')
+            // check if a field is empty or forced
+            && (
+                (
+                    $transformFieldHandle && (
+                        trim($asset[$transformFieldHandle]) === null
+                        || trim($asset[$transformFieldHandle]) === ''
+                        || trim($asset[$transformFieldHandle]) === '[]'
+                    )
+                ) || $forsed
             )
 
             // check for skip parameter
             && (isset($asset[self::SKIP_TRANSFORM]) ? !$asset[self::SKIP_TRANSFORM] : !isset($asset[self::SKIP_TRANSFORM]))
 
             // check for allowed volumes
-            && (count($allowedVolumes) > 0 && in_array($asset->volumeId, $allowedVolumes));
+            && (count($allowedVolumes) > 0 ? in_array($asset->volumeId, $allowedVolumes) : true);
     }
 
     public static function registerEvents(): void
@@ -124,7 +129,7 @@ class ImageTransformService
                 /* @var $asset Asset */
                 $asset = $event->sender;
 
-                if (!self::canTransform($asset)) {
+                if (!self::canTransform($asset, false, false)) {
                     return;
                 }
 
@@ -148,7 +153,7 @@ class ImageTransformService
     /**
      * @throws Exception
      */
-    public function wsrvImageUrl(Asset $asset, MediaTransform $transform): string
+    public static function wsrvImageUrl(Asset $asset, MediaTransform $transform): string
     {
         $domain = self::getWebsiteDomain();
         $assetUrl = $domain . UrlHelper::rootRelativeUrl($asset->url);
@@ -176,7 +181,7 @@ class ImageTransformService
      *
      * https://<ZONE>/cdn-cgi/image/<OPTIONS>/<SOURCE-IMAGE>
      */
-    public function cloudflareImageUrl(Asset $asset, MediaTransform $transform): string
+    public static function cloudflareImageUrl(Asset $asset, MediaTransform $transform): string
     {
         $zone = App::env('CLOUDFLARE_DOMAIN');
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
@@ -219,7 +224,7 @@ class ImageTransformService
      *
      * https://<ZONE>/cdn-cgi/media/<OPTIONS>/<SOURCE-VIDEO>
      */
-    public function cloudflareVideoUrl(Asset $asset, MediaTransform $transform): string
+    public static function cloudflareVideoUrl(Asset $asset, MediaTransform $transform): string
     {
         $zone = App::env('CLOUDFLARE_DOMAIN');
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
@@ -285,13 +290,21 @@ class ImageTransformService
         }
     }
 
+    public static function getExistingTransforms(Asset $asset): Collection
+    {
+        $transformFieldHandle = self::getTransformFieldHandle($asset);
+        $fieldValue = $transformFieldHandle ? $asset->getFieldValue($transformFieldHandle) : null;
+        $array = $fieldValue ? (array)json_decode($fieldValue ?? '[]') : array();
+        return Collection::make($array);
+    }
+
     /**
      * @throws ErrorException
      * @throws Exception
      * @throws GuzzleException
      * @throws Throwable
      */
-    public static function transformImage(string $assetId): void
+    public static function transformImage(string $assetId, bool $forced = false, $isVideo = false, $onDemandTransforms = []): void
     {
         $asset = Asset::find()->id($assetId)->one();
 
@@ -299,25 +312,45 @@ class ImageTransformService
             return;
         }
 
-        if (!self::canTransform($asset)) {
+        if (!self::canTransform($asset, $forced, $isVideo)) {
             return;
         }
 
-        if ($asset->kind === Asset::KIND_VIDEO && self::isVideoEnabled()) {
-            $transforms = Toolkit::getInstance()->getSettings()->videoTransforms;
-            foreach ($transforms as $key => $transform) {
+        $existingTransforms = self::getExistingTransforms($asset);
+
+        $transforms = [];
+        if (count($onDemandTransforms) > 0) {
+            foreach ($onDemandTransforms as $key => $transform) {
                 $transforms[$key] = new MediaTransform($transform);
-                $transforms[$key]->format = $asset->extension;
+                $transforms[$key]->fit = 'scale-down';
             }
         } else {
-            $transforms = Craft::$app->imageTransforms->getAllTransforms();
+            if ($isVideo) {
+                $transforms = Toolkit::getInstance()->getSettings()->videoTransforms;
+                foreach ($transforms as $key => $transform) {
+                    $transforms[$key] = new MediaTransform($transform);
+                    $transforms[$key]->fit = 'scale-down';
+                }
+            } else {
+                $transforms = array_map(function ($transform) {
+                    return new MediaTransform([
+                        'format' => $transform->format,
+                        'width' => $transform->width,
+                        'height' => $transform->height,
+                        'quality' => $transform->quality,
+                        'fit' => $transform->mode == 'fit' ? 'contain' : 'cover'
+                    ]);
+                }, Craft::$app->imageTransforms->getAllTransforms());
+            }
         }
 
-        ArrayHelper::multisort($transforms, 'width');
+        $transforms = array_filter($transforms, function ($transform) use ($existingTransforms) {
+            return $existingTransforms->where('width', $transform->width)->count() === 0;
+        });
 
         try {
             $parsed = array_map(function ($transform) use ($asset) {
-                return [
+                return (object)[
                     'uri' => DIRECTORY_SEPARATOR . self::getTransformedMedia($transform, $asset),
                     'width' => $transform->width
                 ];
@@ -326,8 +359,10 @@ class ImageTransformService
             Craft::$app->getLog()->logger->log($e->getMessage(), Logger::LEVEL_ERROR);
             return;
         }
+        $parsed = array_merge($parsed, $existingTransforms->all());
+        $parsed = array_filter($parsed, fn ($tr) => $tr->uri !== '/');
+        ArrayHelper::multisort($parsed, 'width');
 
-        $parsed = array_filter($parsed, fn ($tr) => $tr['uri'] !== '/');
         if (count($parsed) > 0) {
             $transformFieldHandle = self::getTransformFieldHandle($asset);
             if ($transformFieldHandle) {
@@ -336,6 +371,31 @@ class ImageTransformService
                 Craft::$app->elements->saveElement($asset);
             }
         }
+    }
+    
+    public static function transformMediaOnDemand(Asset $asset, $transforms = []): void
+    {
+        $isVideo = $asset->kind === Asset::KIND_VIDEO;
+
+        if (!self::canTransform($asset, true, $isVideo)) {
+            return;
+        }
+
+        $existingTransforms = self::getExistingTransforms($asset);
+        $flattenTransforms = Collection::make($transforms)->select('width')->flatten();
+
+        if ($flattenTransforms->every(function ($ft) use ($existingTransforms) {
+            return $existingTransforms->contains('width', $ft);
+        })) {
+            return;
+        }
+
+        Queue::push(new TransformImageJob([
+            'assetId' => $asset->id,
+            'transforms' => $transforms,
+            'forced' => true,
+            'isVideo' => $isVideo,
+        ]));
     }
 
     /**
@@ -426,7 +486,7 @@ class ImageTransformService
      * @throws InvalidFieldException
      * @throws SiteNotFoundException|Exception
      */
-    public static function getSrc(Asset $asset, ?int $index = null): string
+    public static function getSrc(Asset $asset, ?int $index = null, $width = ''): string
     {
         $transformFieldHandle = self::getTransformFieldHandle($asset);
         $transformsString = $transformFieldHandle && isset($asset->$transformFieldHandle) ? $asset->getFieldValue($transformFieldHandle) : null;
@@ -438,8 +498,14 @@ class ImageTransformService
         if (count($transforms) === 0) {
             return $asset->url;
         }
-
-        $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
+        
+        if ($width) {
+            $key = array_find_key($transforms, function ($transform) use ($width) {
+                return $transform->width === $width;
+            });
+        } else {
+            $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
+        }
 
         return ImageTransformService::withSiteUrl(
             $key ? ($transforms[$key]->uri ?? '') : ($transforms[0]->uri ?? '')

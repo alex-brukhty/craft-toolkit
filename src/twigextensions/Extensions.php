@@ -65,6 +65,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('mediaBase', [$this, 'mediaBase'], ['is_safe' => ['html']]),
             new TwigFunction('media', [$this, 'media'], ['is_safe' => ['html']]),
             new TwigFunction('imageMarkup', [$this, 'imageMarkup'], ['is_safe' => ['html']]),
+            new TwigFunction('transformedMedia', [$this, 'transformedMedia'], ['is_safe' => ['html']]),
             new TwigFunction('player', [$this, 'player'], ['is_safe' => ['html']]),
             new TwigFunction('htmxValsObj', [$this, 'htmxValsObj']),
             new TwigFunction('htmxVals', [$this, 'htmxVals']),
@@ -231,7 +232,7 @@ class Extensions extends AbstractExtension
     /**
      * @throws Throwable
      */
-    public function mediaBase(Asset|null $asset, $options = [], $transformName = 'fullWidth'): string
+    public function mediaBase(Asset|null $asset, $options = [], int|null $transformWidth = null): string
     {
         if (!$asset) return '';
 
@@ -256,6 +257,12 @@ class Extensions extends AbstractExtension
         ]);
 
         if ($asset->kind === 'video') {
+            $src = $asset->url;
+
+            if (ImageTransformService::isVideoEnabled()) {
+                $src = ImageTransformService::getSrc($asset, null, $transformWidth);
+            }
+
             return Html::tag(
                 'div',
                 Html::tag(
@@ -264,9 +271,9 @@ class Extensions extends AbstractExtension
                         'source',
                         null,
                         [
-                            'src' => !$lazy ? $asset->url : null,
+                            'src' => !$lazy ? $src : null,
                             'crossorigin' => 'anonymous',
-                            'data-src' => $lazy ? $asset->url : null,
+                            'data-src' => $lazy ? $src : null,
                             'type' => 'video/mp4',
                         ]
                     ),
@@ -309,13 +316,7 @@ class Extensions extends AbstractExtension
             $srcset = null;
             $src = $asset->url;
         } else {
-            $imagerX = Craft::$app->plugins->getPlugin('imager-x');
-
-            if ($imagerX && $imagerX->isInstalled) {
-                $transforms = $imagerX->imager->transformImage($asset, $transformName) ?? [];
-                $srcset = $this->fixSrcsetSpaces($imagerX->imager->srcset($transforms)) ?? null;
-                $src = str_replace(' ', '%20', end($transforms)->url ?? $asset->url);
-            } elseif (ImageTransformService::isEnabled()) {
+            if (ImageTransformService::isEnabled()) {
                 $src = ImageTransformService::getSrc($asset);
                 $srcset = ImageTransformService::getSrcset($asset);
             } else {
@@ -344,10 +345,24 @@ class Extensions extends AbstractExtension
     /**
      * @throws Throwable
      */
-    public function media(Asset|null $asset, $options = [], $transformName = 'fullWidth'): string
+    public function media(Asset|null $asset, $options = []): string
     {
         $mobileMedia = $asset[ImageTransformService::overrideFields('mobileImage')][0] ?? ($asset[ImageTransformService::overrideFields('mobileVideo')][0] ?? null);
-        return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => !!$mobileMedia], $transformName) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $transformName);
+        return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => !!$mobileMedia]) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia]);
+    }
+
+    public function transformedMedia(Asset $asset, $options = [], $transforms = [], $transformsMobile = [], int|null $width = null, int|null $mobileWdith = null): string
+    {
+        $mobileMedia = $asset[ImageTransformService::overrideFields('mobileVideo')][0] ?? null;
+        ImageTransformService::transformMediaOnDemand($asset, $transforms);
+        $firstWidth = count($transforms) > 0 ?  $transforms[0]['width'] ?? null : null;
+        $firstMobileWidth = count($transformsMobile) > 0 ?  $transformsMobile[0]['width'] ?? null : null;
+
+        if ($mobileMedia) {
+            ImageTransformService::transformMediaOnDemand($mobileMedia, $transformsMobile);
+        }
+        
+        return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => true], $firstMobileWidth) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $firstWidth);
     }
 
     public function player(Asset|null $asset): string

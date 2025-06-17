@@ -15,6 +15,8 @@ class TransformImageJob extends BaseJob implements RetryableJobInterface
 
     public string $assetId;
     public bool $forced = false;
+    public bool $isVideo = false;
+    public $transforms = [];
 
     public function getTtr(): int
     {
@@ -34,7 +36,12 @@ class TransformImageJob extends BaseJob implements RetryableJobInterface
      */
     public function execute($queue): void
     {
-        ImageTransformService::transformImage($this->assetId, $this->forced);
+        ImageTransformService::transformImage(
+            $this->assetId,
+            $this->forced,
+            $this->isVideo,
+            $this->transforms
+        );
     }
 
     public function getDescription(): string
