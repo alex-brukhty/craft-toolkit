@@ -51,4 +51,10 @@ class CacheController extends Controller
 
         return ExitCode::OK;
     }
+
+    public function actionPurgeCloudflare()
+    {
+        Toolkit::getInstance()->cloudflareService->purgeAllPage();
+        return ExitCode::OK;
+    }
 }

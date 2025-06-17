@@ -5,12 +5,14 @@ namespace alexbrukhty\crafttoolkit\services;
 use Craft;
 use alexbrukhty\crafttoolkit\Toolkit;
 use alexbrukhty\crafttoolkit\models\Settings;
+use craft\errors\SiteNotFoundException;
 use craft\events\RegisterCacheOptionsEvent;
 use craft\helpers\Json;
 use craft\utilities\ClearCaches;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
+use vipnytt\SitemapParser\Exceptions\SitemapParserException;
 use yii\base\Event;
 
 class CloudflareService
@@ -158,6 +160,17 @@ class CloudflareService
             return $responseBody;
         } catch (ClientException|RequestException $exception) {
             return $this->_handleApiException($exception, $urls);
+        }
+    }
+
+    /**
+     * @throws SiteNotFoundException
+     * @throws SitemapParserException
+     */
+    public function purgeAllPage(): void
+    {
+        if (Toolkit::getInstance()->getSettings()->cloudflareEnabled) {
+            $this->purgeUrls(Toolkit::getInstance()->cacheService->getUrlsToWarm());
         }
     }
 
