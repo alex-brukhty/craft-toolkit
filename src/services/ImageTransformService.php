@@ -183,7 +183,10 @@ class ImageTransformService
      */
     public static function cloudflareImageUrl(Asset $asset, MediaTransform $transform): string
     {
-        $zone = App::env('CLOUDFLARE_DOMAIN');
+        $zone = Toolkit::getInstance()->getSettings()->cloudflareDomain;
+        if (!$zone) {
+            throw new InvalidConfigException('No Cloudflare domain provided');
+        }
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
         $isGrayscale = $asset->grayscale ?? false;
         $options = [];
@@ -226,7 +229,10 @@ class ImageTransformService
      */
     public static function cloudflareVideoUrl(Asset $asset, MediaTransform $transform): string
     {
-        $zone = App::env('CLOUDFLARE_DOMAIN');
+        $zone = Toolkit::getInstance()->getSettings()->cloudflareDomain;
+        if (!$zone) {
+            throw new InvalidConfigException('No Cloudflare domain provided');
+        }
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
         $options = ['mode=video', 'audio=false'];
 

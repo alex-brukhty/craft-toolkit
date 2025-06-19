@@ -46,6 +46,6 @@ class TransformImageJob extends BaseJob implements RetryableJobInterface
 
     public function getDescription(): string
     {
-        return 'Transforming ' . $this->isVideo ? 'Video' : 'Image';
+        return 'Transforming ' . ($this->isVideo ? 'Video' : 'Image');
     }
 }

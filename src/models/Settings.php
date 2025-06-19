@@ -20,6 +20,7 @@ class Settings extends Model
     public string $cacheBasePath = '@webroot/static';
     public string $cloudflareToken = '';
     public string $cloudflareZone = '';
+    public string $cloudflareDomain = '';
     public bool $cloudflareEnabled = false;
     public bool $imageTransformEnabled = false;
     public bool $videoTransformEnabled = false;
