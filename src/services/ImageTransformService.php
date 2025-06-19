@@ -329,6 +329,7 @@ class ImageTransformService
             foreach ($onDemandTransforms as $key => $transform) {
                 $transforms[$key] = new MediaTransform($transform);
                 $transforms[$key]->fit = 'scale-down';
+                $transforms[$key]->format = $isVideo ? $asset->extension : 'webp';
             }
         } else {
             if ($isVideo) {
@@ -336,6 +337,7 @@ class ImageTransformService
                 foreach ($transforms as $key => $transform) {
                     $transforms[$key] = new MediaTransform($transform);
                     $transforms[$key]->fit = 'scale-down';
+                    $transforms[$key]->format = $asset->extension;
                 }
             } else {
                 $transforms = array_map(function ($transform) {
