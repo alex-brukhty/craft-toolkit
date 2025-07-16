@@ -136,11 +136,12 @@ class CacheService
                     function(mixed $event) {
                         /** @var Element $element */
                         $element = $event->element;
+                        $cacheRelations = $this->getSettings()->cacheRelations;
 
                         if (
                             !ElementHelper::isDraftOrRevision($element)
                             && !in_array($element->siteId, $this->getSettings()->excludeSiteIds ?? [], true)
-                            && $element->url
+                            && (count($cacheRelations) || $element->url)
                             && (
                                 $element::class === Entry::class
                                 || $element::class === 'craft\\commerce\\elements\\Product'
