@@ -347,6 +347,10 @@ class Extensions extends AbstractExtension
      */
     public function media(Asset|null $asset, $options = []): string
     {
+        if ($asset->asPlayer) {
+            return $this->player($asset);
+        }
+
         $mobileMedia = $asset[ImageTransformService::overrideFields('mobileImage')][0] ?? ($asset[ImageTransformService::overrideFields('mobileVideo')][0] ?? null);
         return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => !!$mobileMedia]) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia]);
     }
@@ -378,10 +382,10 @@ class Extensions extends AbstractExtension
                     'src' => $url ?? ($asset->url ?? null),
                     'data' => [
                         'el' => 'main',
-                        'poster' => $poster->url
+                        'poster' => $poster->url ?? null
                     ]
                 ]),
-                ['class' => 'video-wrap2']
+                ['class' => 'video-player']
             )
         );
     }
