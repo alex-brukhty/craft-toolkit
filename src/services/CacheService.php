@@ -246,6 +246,7 @@ class CacheService
             }
         }
 
+        $this->deletePaginationPages();
         Toolkit::getInstance()->cloudflareService->purgeUrls($urls);
     }
 
@@ -320,6 +321,23 @@ class CacheService
 //            'except' => [some . '/'],
             'only' => ['index.html'],
         ]));
+    }
+
+    public function deletePaginationPages()
+    {
+        $path = $this->cacheBasePath;
+        if (!is_dir($path)) {
+            return 0;
+        }
+        $pages = FileHelper::findDirectories($path);
+        $pages = array_filter($pages, function ($p) {
+            return preg_match('#/p\d+$#', $p) === 1;
+        });
+        foreach ($pages as $page) {
+            FileHelper::removeDirectory($page);
+        }
+
+        return count($pages);
     }
 
     /**
