@@ -348,7 +348,7 @@ class Extensions extends AbstractExtension
     public function media(Asset|null $asset, $options = []): string
     {
         if ($asset->asPlayer) {
-            return $this->player($asset);
+            return $this->player($asset, $options);
         }
 
         $mobileMedia = $asset[ImageTransformService::overrideFields('mobileImage')][0] ?? ($asset[ImageTransformService::overrideFields('mobileVideo')][0] ?? null);
@@ -369,8 +369,9 @@ class Extensions extends AbstractExtension
         return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => true], $firstMobileWidth) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $firstWidth);
     }
 
-    public function player(Asset|null $asset): string
+    public function player(Asset|null $asset, $options = []): string
     {
+        $inset = $options['inset'] ?? false;
         $poster = $asset[ImageTransformService::overrideFields('isExternalVideo')] ? $asset : $asset[ImageTransformService::overrideFields('videoThumbnail')]->eagerly()->one();
         $url = $asset[ImageTransformService::overrideFields('externalVideoUrl')];
 
@@ -385,7 +386,12 @@ class Extensions extends AbstractExtension
                         'poster' => $poster->url ?? null
                     ]
                 ]),
-                ['class' => 'video-player']
+                [
+                    'class' => [
+                        'video-player',
+                        $inset ? 'inset-video' : null,
+                    ]
+                ]
             )
         );
     }
