@@ -347,7 +347,7 @@ class Extensions extends AbstractExtension
      */
     public function media(Asset|null $asset, $options = []): string
     {
-        if ($asset->asPlayer) {
+        if ($asset && $asset->asPlayer) {
             return $this->player($asset, $options);
         }
 
