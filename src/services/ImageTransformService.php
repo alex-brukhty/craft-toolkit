@@ -110,19 +110,22 @@ class ImageTransformService
             Asset::class, Element::EVENT_BEFORE_SAVE,
             function(Event $event) {
                 /* @var $asset Asset */
-                $asset = $event->sender;
-                $newFilename = Craft::$app->request->getBodyParam('newFilename');
 
-                if (
-                    $newFilename !== $asset->filename
-                    || in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])
-                ) {
-                    $transformFieldHandle = self::getTransformFieldHandle($asset);
-                    if ($transformFieldHandle) {
-                        $asset->setFieldValue($transformFieldHandle, '');
+                if (Craft::$app->getRequest()->getIsCpRequest()) {
+                    $asset = $event->sender;
+                    $newFilename = Craft::$app->request->getBodyParam('newFilename');
+                    if (
+                        $newFilename !== $asset->filename
+                        || in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])
+                    ) {
+                        $transformFieldHandle = self::getTransformFieldHandle($asset);
+                        if ($transformFieldHandle) {
+                            $asset->setFieldValue($transformFieldHandle, '');
+                        }
+                        self::deleteTransformedImage($asset, true);
                     }
-                    self::deleteTransformedImage($asset, true);
                 }
+
             }
         );
 
