@@ -111,8 +111,12 @@ class ImageTransformService
             function(Event $event) {
                 /* @var $asset Asset */
                 $asset = $event->sender;
+                $newFilename = Craft::$app->request->getBodyParam('newFilename');
 
-                if (in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])) {
+                if (
+                    $newFilename !== $asset->filename
+                    || in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])
+                ) {
                     $transformFieldHandle = self::getTransformFieldHandle($asset);
                     if ($transformFieldHandle) {
                         $asset->setFieldValue($transformFieldHandle, '');
