@@ -249,6 +249,7 @@ class Extensions extends AbstractExtension
         $inset = $options['inset'] ?? false;
         $hasMobile = $options['hasMobile'] ?? false;
         $isMobile = $options['isMobile'] ?? false;
+        $asPlayer = $options['asPlayer'] ?? ($asset->asPlayer ?? false);
 
         $ratioSvg = Html::tag('svg', null, [
             'class' => 'image-ratio',
@@ -261,6 +262,10 @@ class Extensions extends AbstractExtension
 
             if (ImageTransformService::isVideoEnabled()) {
                 $src = ImageTransformService::getSrc($asset, null, $transformWidth);
+            }
+
+            if ($asPlayer) {
+                return $this->player($asset, [...$options, 'src' => $src]);
             }
 
             return Html::tag(
@@ -347,10 +352,6 @@ class Extensions extends AbstractExtension
      */
     public function media(Asset|null $asset, $options = []): string
     {
-        if ($asset && $asset->asPlayer) {
-            return $this->player($asset, $options);
-        }
-
         $mobileMedia = $asset[ImageTransformService::overrideFields('mobileImage')][0] ?? ($asset[ImageTransformService::overrideFields('mobileVideo')][0] ?? null);
         return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => !!$mobileMedia]) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia]);
     }
@@ -373,7 +374,8 @@ class Extensions extends AbstractExtension
     {
         $inset = $options['inset'] ?? false;
         $poster = $asset[ImageTransformService::overrideFields('isExternalVideo')] ? $asset : $asset[ImageTransformService::overrideFields('videoThumbnail')]->eagerly()->one();
-        $url = $asset[ImageTransformService::overrideFields('externalVideoUrl')];
+        $url = $options['src'] ?? $asset[ImageTransformService::overrideFields('externalVideoUrl')];
+        $autoplay = $options['autoplay'] ?? null;
 
         return Html::tag(
             'b-player',
@@ -392,7 +394,8 @@ class Extensions extends AbstractExtension
                         $inset ? 'inset-video' : null,
                     ]
                 ]
-            )
+            ),
+            ['autoplay' => $autoplay]
         );
     }
 
