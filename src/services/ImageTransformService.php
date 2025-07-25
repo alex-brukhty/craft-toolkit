@@ -238,7 +238,7 @@ class ImageTransformService
             throw new InvalidConfigException('No Cloudflare domain provided');
         }
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
-        $options = ['mode=video', 'audio=false'];
+        $options = ['mode=video'];
 
         if ($transform->width) {
             $options[] = "width=$transform->width";
