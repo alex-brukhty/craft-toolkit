@@ -115,8 +115,9 @@ class ImageTransformService
                     $asset = $event->sender;
                     $newFilename = Craft::$app->request->getBodyParam('newFilename');
                     if (
-                        $newFilename !== $asset->filename
-                        || in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE])
+                        ($newFilename !== $asset->filename
+                        || in_array($asset->getScenario(), [Asset::SCENARIO_FILEOPS, Asset::SCENARIO_MOVE]))
+                        && $asset->id
                     ) {
                         $transformFieldHandle = self::getTransformFieldHandle($asset);
                         if ($transformFieldHandle) {
@@ -436,6 +437,9 @@ class ImageTransformService
      */
     public static function getTransformFolder(Asset $asset, $asFile = false): string
     {
+        if (!$asset->url) {
+            return '';
+        }
         $uri = UrlHelper::rootRelativeUrl($asset->url);
         $rootUrl = $asset->getVolume()->getFs()->getRootUrl();
         $uriWithoutMedia = ltrim($uri, $rootUrl);
