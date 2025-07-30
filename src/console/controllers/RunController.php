@@ -114,4 +114,15 @@ class RunController extends Controller
             $this->stdout('No Assets transforms to remove' . PHP_EOL, BaseConsole::FG_YELLOW);
         }
     }
+
+    public function actionCleanVideos()
+    {
+        $assets = Asset::find()->kind(Asset::KIND_VIDEO)->transformUrls('*.auto"*')->all();
+        foreach ($assets as $asset) {
+            $asset->setFieldValue('transformUrls', '');
+            Craft::$app->elements->saveElement($asset);
+        }
+        $this->stdout('Cleaned '. count($assets) . PHP_EOL, BaseConsole::FG_YELLOW);
+        return ExitCode::OK;
+    }
 }
