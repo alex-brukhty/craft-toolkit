@@ -39,7 +39,6 @@ class TransformImageJob extends BaseJob implements RetryableJobInterface
         ImageTransformService::transformImage(
             $this->assetId,
             $this->forced,
-            $this->isVideo,
             $this->transforms
         );
     }

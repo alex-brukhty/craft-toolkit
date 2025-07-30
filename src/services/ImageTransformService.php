@@ -3,6 +3,7 @@
 namespace alexbrukhty\crafttoolkit\services;
 
 use alexbrukhty\crafttoolkit\models\MediaTransform;
+use alexbrukhty\crafttoolkit\models\Settings;
 use Craft;
 use alexbrukhty\crafttoolkit\helpers\FileHelper;
 use alexbrukhty\crafttoolkit\Toolkit;
@@ -69,7 +70,7 @@ class ImageTransformService
         return rtrim($domain, '/');
     }
 
-    public static function canTransform(Asset $asset, $forsed = false, $withVideo = false): bool
+    public static function canTransform(Asset $asset, $forsed = false): bool
     {
         $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
         $transformFieldHandle = self::getTransformFieldHandle($asset);
@@ -77,8 +78,13 @@ class ImageTransformService
         return (
             // check if enabled
             (self::isEnabled() && $asset->kind === Asset::KIND_IMAGE)
-            || ($withVideo && self::isVideoEnabled() && $asset->kind === Asset::KIND_VIDEO)
+            || (self::isVideoEnabled() && $asset->kind === Asset::KIND_VIDEO)
             )
+
+            && (self::isVideoEnabled()
+            && $asset->kind === Asset::KIND_VIDEO
+            && Toolkit::getInstance()->getSettings()->videoTransformAdapter === Settings::TRANSFORMER_VIDEO_CLOUDFLARE
+            && $asset->size < 100000000)
 
             // check if asset not in draft
             && !ElementHelper::isDraftOrRevision($asset)
@@ -241,6 +247,9 @@ class ImageTransformService
         if (!$zone) {
             throw new InvalidConfigException('No Cloudflare domain provided');
         }
+        if ($asset->size >= 100000000) {
+            throw new InvalidConfigException('Files larger then 100mb cannot be transformed with Cloudflare');
+        }
         $assetUrl = ltrim(UrlHelper::rootRelativeUrl($asset->url), '/');
         $options = ['mode=video'];
 
@@ -288,7 +297,14 @@ class ImageTransformService
         }
 
         $url = self::getTransformUrl($asset, $transform);
+        if (!$url) {
+            return '';
+        }
+
         $save = self::getTransformUri($asset, $transform, true);
+        if (!$save) {
+            return '';
+        }
 
         Craft::getLogger()->log("Transform: $url", Logger::LEVEL_INFO, 'image-transform');
 
@@ -318,15 +334,16 @@ class ImageTransformService
      * @throws GuzzleException
      * @throws Throwable
      */
-    public static function transformImage(string $assetId, bool $forced = false, $isVideo = false, $onDemandTransforms = []): void
+    public static function transformImage(string $assetId, bool $forced = false, $onDemandTransforms = []): void
     {
         $asset = Asset::find()->id($assetId)->one();
+        $isVideo = $asset->kind === Asset::KIND_VIDEO;
 
         if (!$asset) {
             return;
         }
 
-        if (!self::canTransform($asset, $forced, $isVideo)) {
+        if (!self::canTransform($asset, $forced)) {
             return;
         }
 
@@ -372,7 +389,7 @@ class ImageTransformService
                 ];
             }, $transforms);
         } catch (Throwable $e) {
-            Craft::$app->getLog()->logger->log($e->getMessage(), Logger::LEVEL_ERROR);
+            Craft::$app->getLog()->logger->log($e->getMessage(), Logger::LEVEL_ERROR, 'image-transform');
             return;
         }
         $parsed = array_merge($parsed, $existingTransforms->all());
@@ -391,9 +408,7 @@ class ImageTransformService
     
     public static function transformMediaOnDemand(Asset $asset, $transforms = []): void
     {
-        $isVideo = $asset->kind === Asset::KIND_VIDEO;
-
-        if (!self::canTransform($asset, true, $isVideo)) {
+        if (!self::canTransform($asset, true)) {
             return;
         }
 
@@ -409,8 +424,8 @@ class ImageTransformService
         Queue::push(new TransformImageJob([
             'assetId' => $asset->id,
             'transforms' => $transforms,
+            'isVideo' => $asset->kind === Asset::KIND_VIDEO,
             'forced' => true,
-            'isVideo' => $isVideo,
         ]));
     }
 
