@@ -70,44 +70,59 @@ class ImageTransformService
         return rtrim($domain, '/');
     }
 
-    public static function canTransform(Asset $asset, $forsed = false): bool
+    public static function canTransform(Asset $asset, $forced = false): bool
     {
         $allowedVolumes = Toolkit::getInstance()->getSettings()->imageTransformVolumes;
         $transformFieldHandle = self::getTransformFieldHandle($asset);
 
-        return (
+        // check if asset not in draft
+        if (ElementHelper::isDraftOrRevision($asset)) {
+            return false;
+        }
+
+        // check for skip a parameter is set to true
+        if (isset($asset[self::SKIP_TRANSFORM]) && $asset[self::SKIP_TRANSFORM]) {
+            return false;
+        }
+
+        // check for allowed volumes
+        if (count($allowedVolumes) > 0 && !in_array($asset->volumeId, $allowedVolumes)) {
+            return false;
+        }
+
+        // check if the asset is already transformed
+        if ($transformFieldHandle && $asset[$transformFieldHandle] && !$forced) {
+            return false;
+        }
+
+        if ($asset->kind === Asset::KIND_IMAGE) {
             // check if enabled
-            (self::isEnabled() && $asset->kind === Asset::KIND_IMAGE)
-            || (self::isVideoEnabled() && $asset->kind === Asset::KIND_VIDEO)
-            )
-
-            && (self::isVideoEnabled()
-            && $asset->kind === Asset::KIND_VIDEO
-            && Toolkit::getInstance()->getSettings()->videoTransformAdapter === Settings::TRANSFORMER_VIDEO_CLOUDFLARE
-            && $asset->size < 100000000)
-
-            // check if asset not in draft
-            && !ElementHelper::isDraftOrRevision($asset)
+            if (!self::isEnabled()) {
+                return false;
+            }
 
             // skip some unwanted extension
-            && !in_array(strtolower($asset->extension), ['svg', 'gif', 'webp', 'avif'])
+            if (in_array(strtolower($asset->extension), ['svg', 'gif', 'webp', 'avif'])) {
+                return false;
+            }
+        }
 
-            // check if a field is empty or forced
-            && (
-                (
-                    $transformFieldHandle && (
-                        trim($asset[$transformFieldHandle]) === null
-                        || trim($asset[$transformFieldHandle]) === ''
-                        || trim($asset[$transformFieldHandle]) === '[]'
-                    )
-                ) || $forsed
-            )
+        if ($asset->kind === Asset::KIND_VIDEO) {
+            // check if enabled
+            if (!self::isVideoEnabled()) {
+                return false;
+            }
 
-            // check for skip parameter
-            && (isset($asset[self::SKIP_TRANSFORM]) ? !$asset[self::SKIP_TRANSFORM] : !isset($asset[self::SKIP_TRANSFORM]))
+            // check if the video is not too big for the Cloudflare to transform
+            if (
+                Toolkit::getInstance()->getSettings()->videoTransformAdapter === Settings::TRANSFORMER_VIDEO_CLOUDFLARE
+                && $asset->size > 100000000
+            ) {
+                return false;
+            }
+        }
 
-            // check for allowed volumes
-            && (count($allowedVolumes) > 0 ? in_array($asset->volumeId, $allowedVolumes) : true);
+        return true;
     }
 
     public static function registerEvents(): void
@@ -143,7 +158,7 @@ class ImageTransformService
                 /* @var $asset Asset */
                 $asset = $event->sender;
 
-                if (!self::canTransform($asset, false, false)) {
+                if (!self::canTransform($asset)) {
                     return;
                 }
 
