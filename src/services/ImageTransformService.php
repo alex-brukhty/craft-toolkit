@@ -553,7 +553,7 @@ class ImageTransformService
                 return $transform->width === $width;
             });
         } else {
-            $key = $index ? ($index > -1 ? $index : array_key_last($transforms)) : null;
+            $key = $index ?: array_key_last($transforms);
         }
 
         return ImageTransformService::withSiteUrl(
