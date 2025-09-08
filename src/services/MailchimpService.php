@@ -5,6 +5,7 @@ namespace alexbrukhty\crafttoolkit\services;
 use alexbrukhty\crafttoolkit\Toolkit;
 use DrewM\MailChimp\MailChimp;
 use Exception;
+use yii\validators\EmailValidator;
 
 
 class MailchimpService
@@ -31,14 +32,16 @@ class MailchimpService
 
     public function subscribe(string $email, string $listId = null, $data = [])
     {
+
         if (!$email) {
             return ['success' => false, 'msg' => 'Email can\'t be empty'];
         }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $validator = new EmailValidator();
+        if (!$validator->validate($email)) {
             return ['success' => false, 'msg' => 'Invalid email format'];
         }
-
+        
         $dataMC = [
             'email_address' => $email,
             'status' => 'subscribed',
@@ -46,11 +49,18 @@ class MailchimpService
         ];
 
         if (isset($data["name"])) {
+            // validate if name is only words no numbers or symbols
+            if (!preg_match('/^[a-zA-Z\s]+$/', $data["name"])) {
+                return ['success' => true, 'msg' => 'Name is weird'];
+            }
             $name = array_pad(explode(" ", $data["name"], 2), 2, null);
             $dataMC = array_merge($dataMC, ['merge_fields' => ['FNAME' => $name[0], 'LNAME' => $name[1] ?? '']]);
         }
 
         if (isset($data["tags"])) {
+            if (!preg_match('/^[a-zA-Z\s_-]+$/', $data["name"])) {
+                return ['success' => true, 'msg' => 'Tags is weird'];
+            }
             $dataMC = array_merge($dataMC, ['tags' => explode(',', $data["tags"])]);
         }
 
