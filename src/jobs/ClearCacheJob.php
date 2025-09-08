@@ -26,7 +26,7 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
 
     public function execute($queue): void
     {
-        $lockKey = 'clear:' . $this->elementId;
+        $lockKey = 'clear:' . $this->elementId ?? 'all';
         $mutex = Craft::$app->getMutex();
 
         if ($mutex->acquire($lockKey) || !$this->elementId) {

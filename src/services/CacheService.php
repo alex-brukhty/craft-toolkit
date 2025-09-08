@@ -275,6 +275,10 @@ class CacheService
 
                 $handle = $entry->section->handle ?? ($entry->type->handle ?? null);
                 if ($handle && isset($cacheRelations[$handle])) {
+                    if ($cacheRelations[$handle] === 'all') {
+                        $this->clearAllCache();
+                        return;
+                    }
                     $handles = array_filter($cacheRelations[$handle], fn ($item) => !strpos($item, '/'));
                     $uris = array_filter($cacheRelations[$handle], fn ($item) => strpos($item, '/') === 0);
                     $entries = Entry::find()->section($handles)->collect();
