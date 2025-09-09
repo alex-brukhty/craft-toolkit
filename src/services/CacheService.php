@@ -145,6 +145,7 @@ class CacheService
                             && (
                                 $element::class === Entry::class
                                 || $element::class === 'craft\\commerce\\elements\\Product'
+                                || $element::class === 'craft\\shopify\\elements\\Product'
                                 || $element::class === Asset::class
                             )
                         ) {
