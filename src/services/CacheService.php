@@ -262,22 +262,26 @@ class CacheService
     {
         $urls = Collection::make();
         $productElementClass = 'craft\\commerce\\elements\\Product';
+        $shopifyProductElementClass = 'craft\\shopify\\elements\\Product';
         /* @var Element|null $productElement */
         $productElement = class_exists($productElementClass) ? $productElementClass : null;
+        /* @var Element|null $shopifyProductElement */
+        $shopifyProductElement = class_exists($shopifyProductElementClass) ? $shopifyProductElementClass : null;
         $cacheRelations = $this->getSettings()->cacheRelations;
 
         if (count($cacheRelations) > 0) {
             $entries = Entry::find()->relatedTo($element)->collect();
             $products = $productElement ? $productElement::find()->relatedTo($element)->collect() : Collection::make();
-            foreach ($entries->merge($products)->all() as $entry) {
+            $shopifyProducts = $shopifyProductElement ? $shopifyProductElement::find()->relatedTo($element)->collect() : Collection::make();
+            foreach ($entries->merge($products)->merge($shopifyProducts)->all() as $entry) {
                 $url = $entry->getRootOwner()->url;
                 $urls->put($entry->id, $url);
-            };
+            }
             if (!$element::class === Asset::class) {
                 $entry = $element->getRootOwner();
                 $urls->put($entry->id, $entry->url);
 
-                $handle = $entry->section->handle ?? ($entry->type->handle ?? null);
+                $handle = $element::class === $shopifyProductElementClass ? 'shopifyProduct' : ($entry->section->handle ?? ($entry->type->handle ?? null));
                 if ($handle && isset($cacheRelations[$handle])) {
                     if ($cacheRelations[$handle] === 'all') {
                         $this->clearAllCache();
