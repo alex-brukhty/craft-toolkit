@@ -13,6 +13,7 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
     public array $urls = [];
     public string|null $elementId = null;
     public bool $all = false;
+    public string $mutexKey = '';
 
     public function getTtr(): int
     {
@@ -26,22 +27,20 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
 
     public function execute($queue): void
     {
-        $lockKey = 'clear:' . $this->elementId ?? 'all';
-        $mutex = Craft::$app->getMutex();
-
-        if ($mutex->acquire($lockKey) || !$this->elementId) {
-            if ($this->elementId) {
-                $element = Craft::$app->getElements()->getElementById($this->elementId);
-                if ($element) {
-                    Toolkit::getInstance()->cacheService->clearCacheByElement($element);
-                }
-            } elseif ($this->all) {
-                Toolkit::getInstance()->cacheService->clearAllCache();
-            } else {
-                Toolkit::getInstance()->cacheService->clearCacheByUrls($this->urls);
+        if ($this->elementId) {
+            $element = Craft::$app->getElements()->getElementById($this->elementId);
+            if ($element) {
+                Toolkit::getInstance()->cacheService->clearCacheByElement($element);
             }
+        } elseif ($this->all) {
+            Toolkit::getInstance()->cacheService->clearAllCache();
+        } else {
+            Toolkit::getInstance()->cacheService->clearCacheByUrls($this->urls);
+        }
 
-            $mutex->release($lockKey);
+        if ($this->mutexKey) {
+            $mutex = Craft::$app->getMutex();
+            $mutex->release($this->mutexKey);
         }
     }
 

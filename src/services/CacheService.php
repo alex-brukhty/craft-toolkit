@@ -148,9 +148,14 @@ class CacheService
                                 || $element::class === Asset::class
                             )
                         ) {
-                            Queue::push(new ClearCacheJob([
-                                'elementId' => $element->id,
-                            ]));
+                            $mutex = Craft::$app->getMutex();
+                            $lockKey = count($cacheRelations) ? 'clear:'.$element->id : 'clear:all';
+                            if ($mutex->acquire($lockKey)) {
+                                Queue::push(new ClearCacheJob([
+                                    'elementId' => $element->id,
+                                    'mutexKey' => $lockKey,
+                                ]));
+                            }
                         }
                     }
                 );
@@ -262,14 +267,13 @@ class CacheService
         $cacheRelations = $this->getSettings()->cacheRelations;
 
         if (count($cacheRelations) > 0) {
-            if ($element::class === Asset::class) {
-                $entries = Entry::find()->relatedTo($element)->collect();
-                $products = $productElement ? $productElement::find()->relatedTo($element)->collect() : Collection::make();
-                foreach ($entries->merge($products)->all() as $entry) {
-                    $url = $entry->getRootOwner()->url;
-                    $urls->put($entry->id, $url);
-                };
-            } else {
+            $entries = Entry::find()->relatedTo($element)->collect();
+            $products = $productElement ? $productElement::find()->relatedTo($element)->collect() : Collection::make();
+            foreach ($entries->merge($products)->all() as $entry) {
+                $url = $entry->getRootOwner()->url;
+                $urls->put($entry->id, $url);
+            };
+            if (!$element::class === Asset::class) {
                 $entry = $element->getRootOwner();
                 $urls->put($entry->id, $entry->url);
 
