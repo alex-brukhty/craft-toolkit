@@ -244,7 +244,7 @@ class CacheService
     public function clearCacheByUrls($urls = [], $siteUrl = ''): void
     {
 //        $this->writeLog(json_encode($urls), $siteId);
-        $siteUrl = $siteUrl ?? Craft::$app->getSites()->currentSite->baseUrl;
+        $siteUrl = $siteUrl ?? Craft::$app->getSites()->getSiteById(1)->baseUrl;
         foreach ($urls as $url => $siteId) {
             if ($url) {
                 $url = str_replace('__home__', '',  $url);
@@ -265,7 +265,7 @@ class CacheService
     public function clearCacheByElement(Element $element): void
     {
         $urls = Collection::make();
-        $site = Craft::$app->getSites()->getSiteById($element->id);
+        $site = Craft::$app->getSites()->getSiteById($element->siteId);
         $productElementClass = 'craft\\commerce\\elements\\Product';
         $shopifyProductElementClass = 'craft\\shopify\\elements\\Product';
         /* @var Element|null $productElement */
