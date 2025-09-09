@@ -215,8 +215,8 @@ class CacheService
 
     private function cacheFilePath(string $uri, $siteUrl = ''): string
     {
-        $urlIsFile = str_contains($uri, '.');
         $url = str_replace($siteUrl, '', $uri);
+        $urlIsFile = str_contains($url, '.');
         $host = preg_replace('/^(http|https):\/\//i', '', $siteUrl);
         return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($urlIsFile ? $url : $url.'/index.html'));
     }
@@ -243,7 +243,6 @@ class CacheService
      */
     public function clearCacheByUrls($urls = [], $siteUrl = ''): void
     {
-//        $this->writeLog(json_encode($urls), $siteId);
         $siteUrl = $siteUrl ?? Craft::$app->getSites()->getSiteById(1)->baseUrl;
         foreach ($urls as $url => $siteId) {
             if ($url) {
@@ -401,7 +400,7 @@ class CacheService
      */
     public function writeLog($message): void
     {
-        $folder = FileHelper::normalizePath(App::parseEnv('@webroot/logs'));
+        $folder = FileHelper::normalizePath(App::parseEnv('@webroot'));
         $path = "$folder/log.txt";
         $read = file_get_contents($path) ?? '';
         FileHelper::writeToFile($path, $read.PHP_EOL.$message);
