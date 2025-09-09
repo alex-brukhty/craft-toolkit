@@ -118,7 +118,7 @@ class CacheService
                         return;
                     }
 
-                    $this->saveCache($response->content, $request->getAbsoluteUrl());
+                    $this->saveCache($response->content, $request->getAbsoluteUrl(), $siteId);
                 },
                 append: false,
             );
@@ -154,6 +154,7 @@ class CacheService
                             if ($mutex->acquire($lockKey)) {
                                 Queue::push(new ClearCacheJob([
                                     'elementId' => $element->id,
+                                    'elementClass' => $element::class,
                                     'mutexKey' => $lockKey,
                                 ]));
                             }
@@ -215,37 +216,40 @@ class CacheService
         return false;
     }
 
-    private function cacheFilePath(string $uri): string
+    private function cacheFilePath(string $uri, $siteUrl = '', $siteId = 1): string
     {
         $urlIsFile = str_contains($uri, '.');
-        $host = preg_replace('/^(http|https):\/\//i', '', $this->siteUrl);
-        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($urlIsFile ? $uri : $uri.'/index.html'));
+        $siteUrl = $siteUrl ?? UrlHelper::siteUrl('', null, null, $siteId);
+        $url = str_replace($siteUrl, '', $uri);
+        $host = preg_replace('/^(http|https):\/\//i', '', $siteUrl);
+        return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($urlIsFile ? $url : $url.'/index.html'));
     }
 
-    private function saveCache(string $content, string $url): void
+    private function saveCache(string $content, string $url, $siteId = 1): void
     {
-        $uri = str_replace($this->siteUrl, '',  $url);
+        $siteUrl = UrlHelper::siteUrl('', null, null, $siteId);
+        $uri = str_replace($siteUrl, '', $url);
         $uri = str_replace('__home__', '',  $uri);
         $urlIsFile = str_contains($uri, '.');
+
         try {
             if (!$urlIsFile) {
                 $content .= '<!-- Cached on ' . date('c') . ' -->';
             }
-            $path = $this->cacheFilePath($uri);
+            $path = $this->cacheFilePath($uri, $siteUrl);
             FileHelper::writeToFile($path, $content);
         } catch (Exception|ErrorException|InvalidArgumentException $exception) {
             Craft::$app->log->logger->log($exception->getMessage(), 'warning', 'static-cache');
         }
     }
 
-    public function clearCacheByUrls($urls = []): void
+    public function clearCacheByUrls($urls = [], $siteId = ''): void
     {
-//        $this->writeLog(implode(PHP_EOL, $urls));
-        foreach ($urls as $url) {
+//        $this->writeLog(json_encode($urls), $siteId);
+        foreach ($urls as $url => $siteId) {
             if ($url) {
-                $uri = str_replace($this->siteUrl, '',  $url);
-                $uri = str_replace('__home__', '',  $uri);
-                $path = $this->cacheFilePath($uri);
+                $url = str_replace('__home__', '',  $url);
+                $path = $this->cacheFilePath($url, null, $siteId);
                 if ($path) {
                     $this->delete($path);
                 }
@@ -274,36 +278,42 @@ class CacheService
             $entries = Entry::find()->relatedTo($element)->collect();
             $products = $productElement ? $productElement::find()->relatedTo($element)->collect() : Collection::make();
             $shopifyProducts = $shopifyProductElement ? $shopifyProductElement::find()->relatedTo($element)->collect() : Collection::make();
-            foreach ($entries->merge($products)->merge($shopifyProducts)->all() as $entry) {
-                $url = $entry->getRootOwner()->url;
-                $urls->put($entry->id, $url);
+            foreach ($entries->merge($products)->merge($shopifyProducts)->all() as $e) {
+                if ($e->url) {
+                    $urls->put($e->url, $element->siteId);
+                }
             }
-            if (!$element::class === Asset::class) {
-                $entry = $element->getRootOwner();
-                $urls->put($entry->id, $entry->url);
+            if ($element::class !== Asset::class) {
+                $url = $element->getRootOwner()->url ?? $element->url;
+                if ($url) {
+                    $urls->put($url, $element->siteId);
+                }
 
-                $handle = $element::class === $shopifyProductElementClass ? 'shopifyProduct' : ($entry->section->handle ?? ($entry->type->handle ?? null));
+                $handle = $element::class === $shopifyProductElementClass ? 'shopifyProduct' : ($element->section->handle ?? ($element->type->handle ?? null));
                 if ($handle && isset($cacheRelations[$handle])) {
                     if ($cacheRelations[$handle] === 'all') {
                         $this->clearAllCache();
                         return;
                     }
+
                     $handles = array_filter($cacheRelations[$handle], fn ($item) => !strpos($item, '/'));
                     $uris = array_filter($cacheRelations[$handle], fn ($item) => strpos($item, '/') === 0);
                     $entries = Entry::find()->section($handles)->collect();
                     $products = $productElement ? $productElement::find()->type($cacheRelations[$handle])->collect() : Collection::make();
 
                     foreach ($entries->merge($products)->all() as $entry) {
-                        $urls->put($entry->id, $entry->url);
+                        if ($entry->url) {
+                            $urls->put($entry->url, $element->siteId);
+                        }
                     }
 
                     foreach ($uris as $uri) {
-                        $urls->put($uri, UrlHelper::siteUrl($uri));
+                        $urls->put($uri, $element->siteId);
                     }
                 }
             }
 
-            $this->clearCacheByUrls($urls->values()->all());
+            $this->clearCacheByUrls($urls->all(), $element->siteId);
         } else {
             $this->clearAllCache();
         }
@@ -382,11 +392,12 @@ class CacheService
         return $warmer->warm();
     }
 
-    public function writeLog($message)
+    public function writeLog($message, $id = ''): void
     {
         $folder = FileHelper::normalizePath(App::parseEnv('@webroot/logs'));
         $timestamp = time();
-        $path = "$folder/cache-$timestamp.txt";
-        FileHelper::writeToFile($path, $message);
+        $path = "$folder/log.txt";
+        $read = file_get_contents($path) ?? '';
+        FileHelper::writeToFile($path, $read.PHP_EOL.$message);
     }
 }
