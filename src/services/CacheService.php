@@ -17,7 +17,6 @@ use craft\helpers\App;
 use craft\helpers\ElementHelper;
 use craft\helpers\FileHelper;
 use craft\helpers\Queue;
-use craft\helpers\UrlHelper;
 use craft\services\Elements;
 use craft\services\Utilities;
 use craft\utilities\ClearCaches;
@@ -37,11 +36,9 @@ class CacheService
 {
     private bool $enabled;
     private string $cacheBasePath;
-    private string $siteUrl;
 
     public function __construct() {
         $this->enabled = $this->getSettings()->cacheEnabled ?? false;
-        $this->siteUrl = Craft::$app->getSites()->currentSite->baseUrl;
         $cacheBasePath = $this->getSettings()->cacheBasePath ?? '@webroot/static';
         $this->cacheBasePath = FileHelper::normalizePath(App::parseEnv($cacheBasePath));
     }
@@ -88,9 +85,9 @@ class CacheService
                     }
 
                     $uri = $request->getFullUri();
-                    $siteId = Craft::$app->getSites()->getCurrentSite()->id;
+                    $site = Craft::$app->getSites()->getCurrentSite();
 
-                    if (in_array($siteId, $this->getSettings()->excludeSiteIds ?? [], true)) {
+                    if (in_array($site->id, $this->getSettings()->excludeSiteIds ?? [], true)) {
                         return;
                     }
 
@@ -118,7 +115,7 @@ class CacheService
                         return;
                     }
 
-                    $this->saveCache($response->content, $request->getAbsoluteUrl(), $siteId);
+                    $this->saveCache($response->content, $request->getAbsoluteUrl(), $site->baseUrl);
                 },
                 append: false,
             );
@@ -216,19 +213,17 @@ class CacheService
         return false;
     }
 
-    private function cacheFilePath(string $uri, $siteUrl = '', $siteId = 1): string
+    private function cacheFilePath(string $uri, $siteUrl = ''): string
     {
         $urlIsFile = str_contains($uri, '.');
-        $siteUrl = $siteUrl ?? UrlHelper::siteUrl('', null, null, $siteId);
         $url = str_replace($siteUrl, '', $uri);
         $host = preg_replace('/^(http|https):\/\//i', '', $siteUrl);
         return FileHelper::normalizePath($this->cacheBasePath . DIRECTORY_SEPARATOR . $host . DIRECTORY_SEPARATOR . ($urlIsFile ? $url : $url.'/index.html'));
     }
 
-    private function saveCache(string $content, string $url, $siteId = 1): void
+    private function saveCache(string $content, string $url, $baseUrl): void
     {
-        $siteUrl = UrlHelper::siteUrl('', null, null, $siteId);
-        $uri = str_replace($siteUrl, '', $url);
+        $uri = str_replace($baseUrl, '', $url);
         $uri = str_replace('__home__', '',  $uri);
         $urlIsFile = str_contains($uri, '.');
 
@@ -236,20 +231,24 @@ class CacheService
             if (!$urlIsFile) {
                 $content .= '<!-- Cached on ' . date('c') . ' -->';
             }
-            $path = $this->cacheFilePath($uri, $siteUrl);
+            $path = $this->cacheFilePath($uri, $baseUrl);
             FileHelper::writeToFile($path, $content);
         } catch (Exception|ErrorException|InvalidArgumentException $exception) {
             Craft::$app->log->logger->log($exception->getMessage(), 'warning', 'static-cache');
         }
     }
 
-    public function clearCacheByUrls($urls = [], $siteId = ''): void
+    /**
+     * @throws ErrorException
+     */
+    public function clearCacheByUrls($urls = [], $siteUrl = ''): void
     {
 //        $this->writeLog(json_encode($urls), $siteId);
+        $siteUrl = $siteUrl ?? Craft::$app->getSites()->currentSite->baseUrl;
         foreach ($urls as $url => $siteId) {
             if ($url) {
                 $url = str_replace('__home__', '',  $url);
-                $path = $this->cacheFilePath($url, null, $siteId);
+                $path = $this->cacheFilePath($url, $siteUrl);
                 if ($path) {
                     $this->delete($path);
                 }
@@ -261,11 +260,12 @@ class CacheService
     }
 
     /**
-     * @throws Exception
+     * @throws Exception|ErrorException
      */
     public function clearCacheByElement(Element $element): void
     {
         $urls = Collection::make();
+        $site = Craft::$app->getSites()->getSiteById($element->id);
         $productElementClass = 'craft\\commerce\\elements\\Product';
         $shopifyProductElementClass = 'craft\\shopify\\elements\\Product';
         /* @var Element|null $productElement */
@@ -296,8 +296,8 @@ class CacheService
                         return;
                     }
 
-                    $handles = array_filter($cacheRelations[$handle], fn ($item) => !strpos($item, '/'));
-                    $uris = array_filter($cacheRelations[$handle], fn ($item) => strpos($item, '/') === 0);
+                    $handles = array_filter($cacheRelations[$handle], fn ($item) => !str_starts_with($item, '/'));
+                    $uris = array_filter($cacheRelations[$handle], fn ($item) => str_starts_with($item, '/'));
                     $entries = Entry::find()->section($handles)->collect();
                     $products = $productElement ? $productElement::find()->type($cacheRelations[$handle])->collect() : Collection::make();
 
@@ -313,7 +313,7 @@ class CacheService
                 }
             }
 
-            $this->clearCacheByUrls($urls->all(), $element->siteId);
+            $this->clearCacheByUrls($urls->all(), $site->baseUrl);
         } else {
             $this->clearAllCache();
         }
@@ -346,7 +346,10 @@ class CacheService
         ]));
     }
 
-    public function deletePaginationPages()
+    /**
+     * @throws ErrorException
+     */
+    public function deletePaginationPages(): int
     {
         $path = $this->cacheBasePath;
         if (!is_dir($path)) {
@@ -392,10 +395,13 @@ class CacheService
         return $warmer->warm();
     }
 
-    public function writeLog($message, $id = ''): void
+    /**
+     * @throws Exception
+     * @throws ErrorException
+     */
+    public function writeLog($message): void
     {
         $folder = FileHelper::normalizePath(App::parseEnv('@webroot/logs'));
-        $timestamp = time();
         $path = "$folder/log.txt";
         $read = file_get_contents($path) ?? '';
         FileHelper::writeToFile($path, $read.PHP_EOL.$message);
