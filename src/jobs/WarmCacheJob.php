@@ -10,12 +10,9 @@ use yii\queue\RetryableJobInterface;
 
 class WarmCacheJob extends BaseJob implements RetryableJobInterface
 {
-
-    public array $urls = [];
-
     public function getTtr(): int
     {
-        return 300;
+        return 600;
     }
 
     public function canRetry($attempt, $error): bool
