@@ -31,7 +31,7 @@ class WarmCacheJob extends BaseJob implements RetryableJobInterface
         $progress = 0;
         foreach ($chunks as $chunk) {
             $progress = $progress + count($chunk);
-            $this->setProgress($queue, $progress / count($urls), "Warming $progress of ".count($urls)." urls");
+            $this->setProgress($queue, $progress / count($urls), "$progress of ".count($urls));
             Toolkit::getInstance()->cacheService->warmUrls($chunk)->wait();
         }
     }
