@@ -376,12 +376,11 @@ class CacheService
         $data = [];
         $sitesIds = count($settings->warmSiteIds) > 0 ? $settings->warmSiteIds : [Craft::$app->sites->getCurrentSite()->id];
         foreach ($sitesIds as $id) {
-            $site = Craft::$app->sites->getSiteById($id);
-            if (!$url = $site->getBaseUrl()) {
+            if (!$url = Craft::$app->sites->getSiteById($id)->getBaseUrl()) {
                 continue;
             }
             $parser->parseRecursive($url.$settings->sitemapUrl);
-            $data = array_merge([$url], array_keys($parser->getUrls()));
+            $data = array_merge($data, [$url], array_keys($parser->getUrls()));
         }
 
         return $data;

@@ -3,7 +3,9 @@
 namespace alexbrukhty\crafttoolkit\jobs;
 
 use alexbrukhty\crafttoolkit\Toolkit;
+use craft\errors\SiteNotFoundException;
 use craft\queue\BaseJob;
+use vipnytt\SitemapParser\Exceptions\SitemapParserException;
 use yii\queue\RetryableJobInterface;
 
 class WarmCacheJob extends BaseJob implements RetryableJobInterface
@@ -21,14 +23,19 @@ class WarmCacheJob extends BaseJob implements RetryableJobInterface
         return true;
     }
 
+    /**
+     * @throws SiteNotFoundException
+     * @throws SitemapParserException
+     */
     public function execute($queue): void
     {
-        $chunks = array_chunk($this->urls, 10);
+        $urls = Toolkit::getInstance()->cacheService->getUrlsToWarm();
+        $chunks = array_chunk($urls, 10);
         $progress = 0;
         foreach ($chunks as $chunk) {
             $progress = $progress + count($chunk);
-            $this->setProgress($queue, $progress / count($this->urls), "Warming $progress of ".count($this->urls)." urls");
-            Toolkit::getInstance()->cacheService->warmUrls($chunk)->wait(true);
+            $this->setProgress($queue, $progress / count($urls), "Warming $progress of ".count($urls)." urls");
+            Toolkit::getInstance()->cacheService->warmUrls($chunk)->wait();
         }
     }
 

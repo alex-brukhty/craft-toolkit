@@ -26,11 +26,8 @@ class CacheController extends Controller
     public function actionWarm()
     {
         $cacheService = Toolkit::getInstance()->cacheService;
-        $urls = $cacheService->getUrlsToWarm();
-        Queue::push(new WarmCacheJob([
-            'urls' => $cacheService->getUrlsToWarm(),
-        ]));
+        Queue::push(new WarmCacheJob());
 
-        return $this->asSuccess('Added to queue '.count($urls).' urls');
+        return $this->asSuccess('Warming started');
     }
 }
