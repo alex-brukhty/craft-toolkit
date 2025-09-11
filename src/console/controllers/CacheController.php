@@ -4,6 +4,7 @@ namespace alexbrukhty\crafttoolkit\console\controllers;
 
 use alexbrukhty\crafttoolkit\jobs\WarmCacheJob;
 use alexbrukhty\crafttoolkit\Toolkit;
+use Craft;
 use craft\errors\SiteNotFoundException;
 use craft\helpers\Queue;
 use vipnytt\SitemapParser\Exceptions\SitemapParserException;
@@ -31,7 +32,10 @@ class CacheController extends Controller
     public function actionWarm(): int
     {
         $this->stdout('Warming Cache' . PHP_EOL, BaseConsole::FG_YELLOW);
-        Queue::push(new WarmCacheJob());
+        $mutex = Craft::$app->getMutex();
+        if ($mutex->acquire('warmer')) {
+            Queue::push(new WarmCacheJob());
+        }
         return ExitCode::OK;
     }
 
