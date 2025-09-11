@@ -23,7 +23,7 @@ class WarmCacheJob extends BaseBatchedJob implements RetryableJobInterface
     public function loadData(): Batchable
     {
         $urls = Toolkit::getInstance()->cacheService->getUrlsToWarm();
-        return new DataBatcher(array_chunk($urls, 20));
+        return new DataBatcher(array_chunk($urls, 10));
     }
 
     public function processItem(mixed $item): void
