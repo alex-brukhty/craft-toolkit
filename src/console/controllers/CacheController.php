@@ -2,9 +2,10 @@
 
 namespace alexbrukhty\crafttoolkit\console\controllers;
 
+use alexbrukhty\crafttoolkit\jobs\WarmCacheJob;
 use alexbrukhty\crafttoolkit\Toolkit;
 use craft\errors\SiteNotFoundException;
-use craft\helpers\Console;
+use craft\helpers\Queue;
 use vipnytt\SitemapParser\Exceptions\SitemapParserException;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -30,25 +31,7 @@ class CacheController extends Controller
     public function actionWarm(): int
     {
         $this->stdout('Warming Cache' . PHP_EOL, BaseConsole::FG_YELLOW);
-
-        $cacheService = Toolkit::getInstance()->cacheService;
-        $cacheService->clearAllCache();
-        $urls = $cacheService->getUrlsToWarm();
-        $urlsCount = count($urls);
-        $chunks = array_chunk($urls, 10);
-        $progress = 0;
-        Console::startProgress(0, $urlsCount, '', 0.8);
-
-        foreach ($chunks as $chunk) {
-            $progress = $progress + count($chunk);
-            Console::updateProgress($progress, $urlsCount);
-            $cacheService->warmUrls($chunk)->wait(true);
-        }
-
-        if ($progress === $urlsCount) {
-            Console::endProgress();
-        }
-
+        Queue::push(new WarmCacheJob());
         return ExitCode::OK;
     }
 
