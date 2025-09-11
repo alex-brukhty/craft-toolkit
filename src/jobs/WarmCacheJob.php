@@ -2,13 +2,13 @@
 
 namespace alexbrukhty\crafttoolkit\jobs;
 
+use craft\base\Batchable;
+use craft\queue\BaseBatchedJob;
+use alexbrukhty\crafttoolkit\helpers\DataBatcher;
 use alexbrukhty\crafttoolkit\Toolkit;
-use craft\errors\SiteNotFoundException;
-use craft\queue\BaseJob;
-use vipnytt\SitemapParser\Exceptions\SitemapParserException;
 use yii\queue\RetryableJobInterface;
 
-class WarmCacheJob extends BaseJob implements RetryableJobInterface
+class WarmCacheJob extends BaseBatchedJob implements RetryableJobInterface
 {
     public function getTtr(): int
     {
@@ -20,23 +20,18 @@ class WarmCacheJob extends BaseJob implements RetryableJobInterface
         return true;
     }
 
-    /**
-     * @throws SiteNotFoundException
-     * @throws SitemapParserException
-     */
-    public function execute($queue): void
+    public function loadData(): Batchable
     {
         $urls = Toolkit::getInstance()->cacheService->getUrlsToWarm();
-        $chunks = array_chunk($urls, 10);
-        $progress = 0;
-        foreach ($chunks as $chunk) {
-            $progress = $progress + count($chunk);
-            $this->setProgress($queue, $progress / count($urls), "$progress of ".count($urls));
-            Toolkit::getInstance()->cacheService->warmUrls($chunk)->wait();
-        }
+        return new DataBatcher(array_chunk($urls, 20));
     }
 
-    public function getDescription(): string
+    public function processItem(mixed $item): void
+    {
+        Toolkit::getInstance()->cacheService->warmUrls($item)->wait();
+    }
+
+    protected function defaultDescription(): ?string
     {
         return 'Warming Urls';
     }
