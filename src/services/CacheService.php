@@ -3,11 +3,13 @@
 namespace alexbrukhty\crafttoolkit\services;
 
 use alexbrukhty\crafttoolkit\jobs\ClearCacheJob;
+use alexbrukhty\crafttoolkit\jobs\WarmCacheJob;
 use alexbrukhty\crafttoolkit\Toolkit;
 use alexbrukhty\crafttoolkit\utilities\CacheUtility;
 use alexbrukhty\crafttoolkit\models\Settings;
 use Craft;
 use craft\base\Element;
+use craft\db\Table;
 use craft\elements\Entry;
 use craft\elements\Asset;
 use craft\errors\SiteNotFoundException;
@@ -29,6 +31,7 @@ use yii\base\ErrorException;
 use yii\base\Event;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException;
+use yii\db\Query;
 use yii\web\Response as ResponseAlias;
 use Illuminate\Support\Collection;
 
@@ -391,6 +394,25 @@ class CacheService
         $warmer = new Warmer($concurrent);
         $warmer->addUrls($urls);
         return $warmer->warm();
+    }
+
+    public function warmUrlsJob()
+    {
+        $jobIsRunning = Collection::make(
+                (new Query())
+                    ->select(['description'])
+                    ->from([Table::QUEUE])
+                    ->cache(0)
+                    ->all()
+            )->filter(fn($el) => str_contains($el['description'], 'Warming Urls'))->count() > 1;
+
+        if (!$jobIsRunning) {
+            Queue::push(new WarmCacheJob([
+                'description' => 'Warming Urls',
+            ]));
+            return false;
+        }
+        return true;
     }
 
     /**

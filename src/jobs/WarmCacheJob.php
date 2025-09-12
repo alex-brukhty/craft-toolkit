@@ -2,7 +2,6 @@
 
 namespace alexbrukhty\crafttoolkit\jobs;
 
-use Craft;
 use craft\base\Batchable;
 use craft\queue\BaseBatchedJob;
 use alexbrukhty\crafttoolkit\helpers\DataBatcher;
@@ -31,14 +30,6 @@ class WarmCacheJob extends BaseBatchedJob implements RetryableJobInterface
     public function processItem(mixed $item): void
     {
         Toolkit::getInstance()->cacheService->warmUrls($item, 5)->wait();
-    }
-
-    public function after(): void
-    {
-        if ($this->mutexKey) {
-            $mutex = Craft::$app->getMutex();
-            $mutex->release($this->mutexKey);
-        }
     }
 
     protected function defaultDescription(): ?string
