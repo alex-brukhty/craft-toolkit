@@ -67,6 +67,7 @@ class Extensions extends AbstractExtension
             new TwigFunction('imageMarkup', [$this, 'imageMarkup'], ['is_safe' => ['html']]),
             new TwigFunction('transformedMedia', [$this, 'transformedMedia'], ['is_safe' => ['html']]),
             new TwigFunction('player', [$this, 'player'], ['is_safe' => ['html']]),
+            new TwigFunction('transformedSrc', [$this, 'transformedSrc']),
             new TwigFunction('htmxValsObj', [$this, 'htmxValsObj']),
             new TwigFunction('htmxVals', [$this, 'htmxVals']),
             new TwigFunction('hexBrightness', [$this, 'hexBrightness']),
@@ -366,8 +367,16 @@ class Extensions extends AbstractExtension
         if ($mobileMedia) {
             ImageTransformService::transformMediaOnDemand($mobileMedia, $transformsMobile);
         }
-        
+
         return ($mobileMedia ? $this->mediaBase($mobileMedia, [...$options, 'isMobile' => true], $firstMobileWidth) : '').$this->mediaBase($asset, [...$options, 'hasMobile' => !!$mobileMedia], $firstWidth);
+    }
+
+    public function transformedSrc($asset, $transforms = [])
+    {
+        if (count($transforms) > 0) {
+            ImageTransformService::transformMediaOnDemand($asset, $transforms);
+        }
+        return $asset ? ImageTransformService::getSrc($asset, null, $transforms[0]['width'] ?? null) : '';
     }
 
     public function player(Asset|null $asset, $options = []): string
