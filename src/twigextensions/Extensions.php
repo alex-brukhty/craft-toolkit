@@ -385,6 +385,8 @@ class Extensions extends AbstractExtension
         $poster = $asset[ImageTransformService::overrideFields('isExternalVideo')] ? $asset : $asset[ImageTransformService::overrideFields('videoThumbnail')]->eagerly()->one();
         $url = $options['src'] ?? $asset[ImageTransformService::overrideFields('externalVideoUrl')];
         $autoplay = $options['autoplay'] ?? null;
+        $width = $asset->assetWidth ?? ($asset->width ?? 1920);
+        $height = $asset->assetHeight ?? ($asset->height ?? 1080);
 
         return Html::tag(
             'b-player',
@@ -392,6 +394,8 @@ class Extensions extends AbstractExtension
                 'div',
                 Html::tag('video', null, [
                     'src' => $url ?? ($asset->url ?? null),
+                    'width' => $width,
+                    'height' => $height,
                     'data' => [
                         'el' => 'main',
                         'poster' => $poster->url ?? null
