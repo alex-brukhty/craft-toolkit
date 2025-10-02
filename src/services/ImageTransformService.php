@@ -127,6 +127,10 @@ class ImageTransformService
 
     public static function registerEvents(): void
     {
+        if (!self::isEnabled()) {
+            return;
+        }
+
         Event::on(
             Asset::class, Element::EVENT_BEFORE_SAVE,
             function(Event $event) {
