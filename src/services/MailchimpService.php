@@ -64,6 +64,10 @@ class MailchimpService
             $dataMC = array_merge($dataMC, ['tags' => explode(',', $data["tags"])]);
         }
 
+        if (isset($data["merge_fields"])) {
+            $dataMC = array_merge($dataMC, ['merge_fields' => $data["merge_fields"]]);
+        }
+
         try {
             $result = $this->mailChimpClient->post(
                 method: "lists/" . ($listId ?? $this->listId) . "/members",
