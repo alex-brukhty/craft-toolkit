@@ -72,7 +72,8 @@ class MailchimpService
         if (isset($data["interests"]) && is_array($data["interests"]) && count($data["interests"]) > 0) {
             $interests = [];
             foreach ($data["interests"] as $interest) {
-                $interests[] = [
+                $interests = [
+                    ...$interests,
                     $interest => true
                 ];
             }
@@ -96,7 +97,9 @@ class MailchimpService
             }
             return [
                 'success' => false,
-                'msg' => 'Mailchimp error: ' . $result['title']
+                'msg' => 'Mailchimp error: ' . $result['title'] . ' - ' . $result['detail'],
+                'errors' => $result['errors'] ?? [],
+                'data' => $dataMC,
             ];
         } catch (Exception $e) {
             return [
