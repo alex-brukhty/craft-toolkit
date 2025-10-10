@@ -42,7 +42,7 @@ class MailchimpService
         if (!$validator->validate($email)) {
             return ['success' => false, 'msg' => 'Invalid email format'];
         }
-        
+
         $dataMC = [
             'email_address' => $email,
             'status' => 'subscribed',
@@ -110,7 +110,7 @@ class MailchimpService
     {
         $cache = Craft::$app->getCache();
         $cacheKey = 'mailchimp-interests';
-        if ($cache->exists($cacheKey)) {
+        if ($cache->exists($cacheKey) && $cache->get($cacheKey)) {
             return $cache->get($cacheKey);
         }
 
@@ -118,18 +118,30 @@ class MailchimpService
         $categories = $this->mailChimpClient->get(
             'lists/' . $listId . '/interest-categories'
         );
-        $interests = [];
+
+        $grouped = [];
         foreach ($categories['categories'] as $category) {
-            $interest = $this->mailChimpClient->get(
+            $interests = $this->mailChimpClient->get(
                 'lists/' . $listId . '/interest-categories/'.$category['id'].'/interests'
             );
+            $parsed = [];
+            foreach ($interests['interests'] as $interest) {
+                $parsed[] = [
+                    'title' => $interest['name'],
+                    'id' => $interest['id']
+                ];
+            }
             if (isset($interests['interests'])) {
-                $interests = array_merge($interests, $interest['interests']);
+                $grouped[] = [
+                    'id' => $category['id'],
+                    'title' => $category['title'],
+                    'interests' => $parsed
+                ];
             }
         }
 
-        $cache->set($cacheKey, $interests, 3600);
+        $cache->set($cacheKey, $grouped, 3600);
 
-        return $interests;
+        return $grouped;
     }
 }
