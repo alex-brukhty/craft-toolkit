@@ -3,6 +3,7 @@
 namespace alexbrukhty\crafttoolkit\services;
 
 use alexbrukhty\crafttoolkit\Toolkit;
+use Craft;
 use DrewM\MailChimp\MailChimp;
 use Exception;
 use yii\validators\EmailValidator;
@@ -11,8 +12,8 @@ use yii\validators\EmailValidator;
 class MailchimpService
 {
 
-    private MailChimp $mailChimpClient;
-    private string $listId;
+    public MailChimp $mailChimpClient;
+    public string $listId;
 
     /**
      * @throws Exception
@@ -68,6 +69,18 @@ class MailchimpService
             $dataMC = array_merge($dataMC, ['merge_fields' => $data["merge_fields"]]);
         }
 
+        if (isset($data["interests"]) && is_array($data["interests"]) && count($data["interests"]) > 0) {
+            $interests = [];
+            foreach ($data["interests"] as $interest) {
+                $interests[] = [
+                    $interest => true
+                ];
+            }
+            $dataMC = array_merge($dataMC, [
+                'interests' => $interests
+            ]);
+        }
+
         try {
             $result = $this->mailChimpClient->post(
                 method: "lists/" . ($listId ?? $this->listId) . "/members",
@@ -91,5 +104,32 @@ class MailchimpService
                 'msg' => $e->getMessage()
             ];
         }
+    }
+
+    public function getInterest()
+    {
+        $cache = Craft::$app->getCache();
+        $cacheKey = 'mailchimp-interests';
+        if ($cache->exists($cacheKey)) {
+            return $cache->get($cacheKey);
+        }
+
+        $listId = Toolkit::getInstance()->getSettings()->mailchimpListId;
+        $categories = $this->mailChimpClient->get(
+            'lists/' . $listId . '/interest-categories'
+        );
+        $interests = [];
+        foreach ($categories['categories'] as $category) {
+            $interest = $this->mailChimpClient->get(
+                'lists/' . $listId . '/interest-categories/'.$category['id'].'/interests'
+            );
+            if (isset($interests['interests'])) {
+                $interests = array_merge($interests, $interest['interests']);
+            }
+        }
+
+        $cache->set($cacheKey, $interests, 3600);
+
+        return $interests;
     }
 }
