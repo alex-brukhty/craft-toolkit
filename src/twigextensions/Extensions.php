@@ -79,8 +79,8 @@ class Extensions extends AbstractExtension
     {
         if (!$asset) return '';
 
-        $width = $asset[ImageTransformService::overrideFields('assetWidth')] ?? $asset->width ?? 1920;
-        $height = $asset[ImageTransformService::overrideFields('assetHeight')] ?? $asset->height ?? 1080;
+        $width = $asset[ImageTransformService::overrideFields('assetWidth')] ?? $asset->width ?? $asset['width'] ?? 1920;
+        $height = $asset[ImageTransformService::overrideFields('assetHeight')] ?? $asset->height ?? $asset['height'] ?? 1080;
 
         return round(($height / $width) * 100, 1) . '%';
     }
