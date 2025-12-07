@@ -37,4 +37,5 @@ class Settings extends Model
     public string $ga4MeasurementSecret = '';
     public string $mailchimpApiKey = '';
     public string $mailchimpListId = '';
+    public string $mailchimpHoneypotFieldHandle = 'zipCode';
 }

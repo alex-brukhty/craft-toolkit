@@ -20,6 +20,11 @@ class MailchimpController extends Controller
         $name = $this->request->getBodyParam('name');
         $firstName = $this->request->getBodyParam('firstName');
         $lastName = $this->request->getBodyParam('lastName');
+        $honey = $this->request->getBodyParam(Toolkit::getInstance()->getSettings()->mailchimpHoneypotFieldHandle);
+
+        if ($honey) {
+            return $this->asJson(['success' => true, 'msg' => 'Gotcha!']);
+        }
 
         $data = [];
 
