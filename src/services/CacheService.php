@@ -315,7 +315,7 @@ class CacheService
                 }
             }
 
-            $this->clearCacheByUrls($urls->all(), $site->baseUrl);
+            $this->clearCacheByUrls($urls->keys()->all(), $site->baseUrl);
         } else {
             $this->clearAllCache();
         }
