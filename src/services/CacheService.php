@@ -258,7 +258,7 @@ class CacheService
         }
 
         $this->deletePaginationPages();
-        Toolkit::getInstance()->cloudflareService->purgeUrls($urls);
+        Toolkit::getInstance()->cloudflareService->purgeUrls(array_keys($urls));
     }
 
     /**
@@ -315,7 +315,7 @@ class CacheService
                 }
             }
 
-            $this->clearCacheByUrls($urls->keys()->all(), $site->baseUrl);
+            $this->clearCacheByUrls($urls->all(), $site->baseUrl);
         } else {
             $this->clearAllCache();
         }
