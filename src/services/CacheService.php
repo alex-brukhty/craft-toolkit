@@ -150,9 +150,14 @@ class CacheService
                             )
                         ) {
                             $mutex = Craft::$app->getMutex();
-                            $lockKey = count($cacheRelations) ? 'clear:'.$element->id : 'clear:all';
+                            $all = $element::class === 'craft\\shopify\\elements\\Product';
+                            $lockKey = count($cacheRelations) && !$all ? 'clear:'.$element->id : 'clear:all';
                             if ($mutex->acquire($lockKey)) {
-                                Queue::push(new ClearCacheJob([
+                                Queue::push(new ClearCacheJob(
+                                    $all ? [
+                                    'all' => true,
+                                    'mutexKey' => $lockKey,
+                                ] : [
                                     'elementId' => $element->id,
                                     'elementClass' => $element::class,
                                     'mutexKey' => $lockKey,
@@ -162,7 +167,6 @@ class CacheService
                     }
                 );
             }
-
         }
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
