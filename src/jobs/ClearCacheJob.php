@@ -36,10 +36,10 @@ class ClearCacheJob extends BaseJob implements RetryableJobInterface
                     Toolkit::getInstance()->cacheService->clearCacheByElement($element);
                 }
             }
-        } elseif ($this->all) {
-            Toolkit::getInstance()->cacheService->clearAllCache();
-        } else {
+        } elseif (count($this->urls)) {
             Toolkit::getInstance()->cacheService->clearCacheByUrls($this->urls);
+        } else {
+            Toolkit::getInstance()->cacheService->clearAllCache();
         }
 
         if ($this->mutexKey) {

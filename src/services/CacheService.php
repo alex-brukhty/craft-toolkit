@@ -124,11 +124,11 @@ class CacheService
             );
 
             $events = [
-                Elements::EVENT_BEFORE_SAVE_ELEMENT,
-                Elements::EVENT_BEFORE_RESAVE_ELEMENT,
-                Elements::EVENT_BEFORE_UPDATE_SLUG_AND_URI,
-                Elements::EVENT_BEFORE_DELETE_ELEMENT,
-                Elements::EVENT_BEFORE_RESTORE_ELEMENT,
+                Elements::EVENT_AFTER_SAVE_ELEMENT,
+                Elements::EVENT_AFTER_RESAVE_ELEMENT,
+                Elements::EVENT_AFTER_UPDATE_SLUG_AND_URI,
+                Elements::EVENT_AFTER_DELETE_ELEMENT,
+                Elements::EVENT_AFTER_RESTORE_ELEMENT,
             ];
 
             foreach ($events as $event) {
