@@ -136,24 +136,28 @@ class CacheService
                     function(mixed $event) {
                         /** @var Element $element */
                         $element = $event->element;
-                        $cacheRelations = $this->getSettings()->cacheRelations;
-                        $additionalElementsToWatch = $this->getSettings()->additionalElementsToWatch;
+                        $cacheRelations = $this->getSettings()->cacheRelations ?? [];
+                        $additionalElementsToWatch = $this->getSettings()->additionalElementsToWatch ?? [];
 
                         if (
-                            !ElementHelper::isDraftOrRevision($element)
-                            && !in_array($element->siteId, $this->getSettings()->excludeSiteIds ?? [], true)
-                            && (count($cacheRelations) || $element->url)
-                            && (
-                                $element::class === Entry::class
-                                || $element::class === 'craft\\commerce\\elements\\Product'
-                                || $element::class === 'craft\\shopify\\elements\\Product'
-                                || $element::class === Asset::class
-                                || (count($additionalElementsToWatch) && in_array($element::class, $additionalElementsToWatch, true))
+                            (count($additionalElementsToWatch) > 0
+                                ? in_array($element::class, $additionalElementsToWatch, true)
+                                : (
+                                    !ElementHelper::isDraftOrRevision($element)
+                                    && !in_array($element->siteId, $this->getSettings()->excludeSiteIds ?? [], true)
+                                    && (count($cacheRelations) > 0 || $element->url)
+                                    && (
+                                        $element::class === Entry::class
+                                        || $element::class === 'craft\\commerce\\elements\\Product'
+                                        || $element::class === 'craft\\shopify\\elements\\Product'
+                                        || $element::class === Asset::class
+                                    )
+                                )
                             )
                         ) {
                             $mutex = Craft::$app->getMutex();
                             $all = $element::class === 'craft\\shopify\\elements\\Product';
-                            $lockKey = count($cacheRelations) && !$all ? 'clear:'.$element->id : 'clear:all';
+                            $lockKey = count($cacheRelations) > 0 && !$all ? 'clear:'.$element->id : 'clear:all';
                             if ($mutex->acquire($lockKey)) {
                                 Queue::push(new ClearCacheJob(
                                     $all ? [
