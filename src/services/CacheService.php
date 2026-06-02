@@ -140,18 +140,16 @@ class CacheService
                         $additionalElementsToWatch = $this->getSettings()->additionalElementsToWatch ?? [];
 
                         if (
-                            (count($additionalElementsToWatch) > 0
-                                ? in_array($element::class, $additionalElementsToWatch, true)
-                                : (
-                                    !ElementHelper::isDraftOrRevision($element)
-                                    && !in_array($element->siteId, $this->getSettings()->excludeSiteIds ?? [], true)
-                                    && (count($cacheRelations) > 0 || $element->url)
-                                    && (
-                                        $element::class === Entry::class
-                                        || $element::class === 'craft\\commerce\\elements\\Product'
-                                        || $element::class === 'craft\\shopify\\elements\\Product'
-                                        || $element::class === Asset::class
-                                    )
+                            in_array($element::class, $additionalElementsToWatch, true)
+                            || (
+                                !ElementHelper::isDraftOrRevision($element)
+                                && !in_array($element->siteId, $this->getSettings()->excludeSiteIds ?? [], true)
+                                && (count($cacheRelations) > 0 || $element->url)
+                                && (
+                                    $element::class === Entry::class
+                                    || $element::class === 'craft\\commerce\\elements\\Product'
+                                    || $element::class === 'craft\\shopify\\elements\\Product'
+                                    || $element::class === Asset::class
                                 )
                             )
                         ) {
