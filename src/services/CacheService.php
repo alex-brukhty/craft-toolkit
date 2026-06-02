@@ -137,6 +137,7 @@ class CacheService
                         /** @var Element $element */
                         $element = $event->element;
                         $cacheRelations = $this->getSettings()->cacheRelations;
+                        $additionalElementsToWatch = $this->getSettings()->additionalElementsToWatch;
 
                         if (
                             !ElementHelper::isDraftOrRevision($element)
@@ -147,6 +148,7 @@ class CacheService
                                 || $element::class === 'craft\\commerce\\elements\\Product'
                                 || $element::class === 'craft\\shopify\\elements\\Product'
                                 || $element::class === Asset::class
+                                || (count($additionalElementsToWatch) && in_array($element::class, $additionalElementsToWatch, true))
                             )
                         ) {
                             $mutex = Craft::$app->getMutex();

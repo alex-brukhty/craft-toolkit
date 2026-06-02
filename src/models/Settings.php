@@ -16,6 +16,7 @@ class Settings extends Model
     public array $cacheInclude = [];
     public array $cacheExclude = [];
     public array $cacheRelations = [];
+    public array $additionalElementsToWatch = [];
     public array $excludeSiteIds = [];
     public string $cacheBasePath = '@webroot/static';
     public string $cloudflareToken = '';
